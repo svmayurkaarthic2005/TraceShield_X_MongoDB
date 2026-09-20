@@ -1,0 +1,100 @@
+Apr 11 00:00:02 db-primary systemd: systemd[1]: Started Session 105 of user www-data.
+Apr 11 00:00:07 ubuntu-server nginx: nginx[1388]: worker process 2435 exited on signal 15
+Apr 11 00:00:09 web01 NetworkManager: NetworkManager[1434]: <info>  [time] device (eth0): state change: activated -> activated
+Apr 11 00:00:15 web01 sudo: svc-backup : TTY=pts/3 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/apt upgrade -y
+Apr 11 00:00:16 db-primary sshd[7924]: Accepted password for www-data from 10.0.0.22 port 23322 ssh2
+Apr 11 00:00:18 db-primary systemd: systemd[1]: Reached target Network Manager.
+Apr 11 00:00:19 ubuntu-server CRON: CRON[6635]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Apr 11 00:00:20 db-primary sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:00:21 app-node2 sshguard: sshguard[6925]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:00:27 web01 systemd: systemd[1]: Started Session 234 of user ubuntu.
+Apr 11 00:00:29 ubuntu-server sshd[8428]: Failed password for svc-backup from 91.240.118.5 port 24933 ssh2
+Apr 11 00:00:32 web01 CRON: CRON[2169]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Apr 11 00:00:37 web01 sudo: pam_unix(sudo:session): session opened for user root by deploy(uid=1000)
+Apr 11 00:00:43 db-primary sudo: pam_unix(sudo:session): session opened for user root by ubuntu(uid=1000)
+Apr 11 00:00:45 ubuntu-server sshd[5386]: Failed password for invalid user root from 91.240.118.5 port 60867 ssh2
+Apr 11 00:00:47 db-primary sudo: deploy : TTY=pts/2 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/apt upgrade -y
+Apr 11 00:00:49 web01 sshd[8019]: Accepted password for ubuntu from 192.168.1.40 port 59863 ssh2
+Apr 11 00:00:52 app-node2 systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:00:53 app-node2 sshd[3621]: Accepted password for admin from 10.0.0.16 port 52933 ssh2
+Apr 11 00:00:58 app-node2 systemd: systemd[1]: Reached target Network Manager.
+Apr 11 00:01:03 app-node2 systemd: systemd[1]: Started Session 882 of user mayur.
+Apr 11 00:01:09 ubuntu-server sshd[2827]: Invalid user oracle from 91.240.118.5 port 20258
+Apr 11 00:01:11 app-node2 nginx: nginx[5215]: worker process 9101 exited on signal 15
+Apr 11 00:01:16 web01 kernel: [UFW BLOCK] IN=eth0 OUT= SRC=194.61.24.9 DST=10.0.0.5 PROTO=TCP SPT=20582 DPT=445
+Apr 11 00:01:18 web01 CRON: CRON[9837]: (root) CMD (test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily ))
+Apr 11 00:01:23 ubuntu-server CRON: CRON[2832]: (root) CMD (test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily ))
+Apr 11 00:01:26 db-primary systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:01:27 ubuntu-server sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:01:29 web01 sudo: svc-backup : TTY=pts/3 ; PWD=/home/svc-backup ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:01:34 web01 sshd[6107]: Accepted password for www-data from 10.0.0.27 port 27172 ssh2
+Apr 11 00:01:38 db-primary sshd[5061]: Invalid user administrator from 91.240.118.5 port 15749
+Apr 11 00:01:41 ubuntu-server systemd: systemd[1]: Started Session 236 of user svc-backup.
+Apr 11 00:01:42 web01 systemd: systemd[1]: Started Session 61 of user admin.
+Apr 11 00:01:43 ubuntu-server sshd[4899]: Failed password for invalid user oracle from 185.220.101.47 port 32836 ssh2
+Apr 11 00:01:48 web01 systemd: systemd[1]: Started Session 591 of user deploy.
+Apr 11 00:01:52 web01 sshd[2588]: Failed password for admin from 185.220.101.47 port 24243 ssh2
+Apr 11 00:01:56 app-node2 nginx: nginx[1787]: worker process 2512 exited on signal 15
+Apr 11 00:02:00 ubuntu-server sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:02:02 ubuntu-server systemd: systemd[1]: Started Session 460 of user admin.
+Apr 11 00:02:04 app-node2 systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:02:08 ubuntu-server sshd[1828]: Failed password for admin from 194.61.24.9 port 36451 ssh2
+Apr 11 00:02:09 ubuntu-server kernel: [UFW BLOCK] IN=eth0 OUT= SRC=185.220.101.47 DST=10.0.0.5 PROTO=TCP SPT=11923 DPT=8080
+Apr 11 00:02:13 app-node2 systemd: systemd[1]: Reached target Network Manager.
+Apr 11 00:02:15 ubuntu-server CRON: CRON[5345]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Apr 11 00:02:18 app-node2 nginx: nginx[8873]: worker process 3436 exited on signal 15
+Apr 11 00:02:21 web01 systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:02:27 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:02:32 app-node2 kernel: [UFW BLOCK] IN=eth0 OUT= SRC=194.61.24.9 DST=10.0.0.5 PROTO=TCP SPT=11341 DPT=22
+Apr 11 00:02:34 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:02:38 web01 systemd: systemd[1]: Started Session 253 of user svc-backup.
+Apr 11 00:02:43 ubuntu-server systemd: systemd[1]: Started Session 598 of user svc-backup.
+Apr 11 00:02:46 db-primary systemd: systemd[1]: Started Session 322 of user admin.
+Apr 11 00:02:50 db-primary systemd: systemd[1]: Started Session 308 of user deploy.
+Apr 11 00:02:51 db-primary systemd: systemd[1]: Started Session 577 of user mayur.
+Apr 11 00:02:56 ubuntu-server systemd: systemd[1]: Reached target Network Manager.
+Apr 11 00:02:59 web01 sshd[5669]: Invalid user oracle from 185.220.101.47 port 11362
+Apr 11 00:03:04 app-node2 sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:03:10 ubuntu-server sshd[3200]: Failed password for invalid user admin from 91.240.118.5 port 59332 ssh2
+Apr 11 00:03:16 ubuntu-server sshguard: sshguard[5462]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:03:21 db-primary systemd: systemd[1]: Reached target Network Manager.
+Apr 11 00:03:27 web01 sudo: ubuntu : TTY=pts/0 ; PWD=/home/ubuntu ; USER=root ; COMMAND=/usr/bin/apt upgrade -y
+Apr 11 00:03:33 ubuntu-server nginx: nginx[5433]: worker process 1622 exited on signal 15
+Apr 11 00:03:36 ubuntu-server sshd[3647]: Accepted password for ubuntu from 192.168.1.53 port 49601 ssh2
+Apr 11 00:03:41 app-node2 sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:03:42 ubuntu-server sudo: www-data : 3 incorrect password attempts ; TTY=pts/1 ; PWD=/home/www-data ; USER=root ; COMMAND=/bin/bash
+Apr 11 00:03:47 db-primary sshguard: sshguard[8041]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:03:48 web01 systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:03:50 db-primary sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:03:55 db-primary sshd[4878]: Invalid user guest from 91.240.118.5 port 57686
+Apr 11 00:03:57 web01 sshd[6442]: Invalid user guest from 185.220.101.47 port 52298
+Apr 11 00:04:03 app-node2 sshd[3608]: Failed password for svc-backup from 185.220.101.47 port 8108 ssh2
+Apr 11 00:04:04 app-node2 sshd[8541]: Failed password for invalid user deploy from 185.220.101.47 port 54798 ssh2
+Apr 11 00:04:06 web01 systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:04:09 app-node2 systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:04:12 db-primary sudo: deploy : TTY=pts/0 ; PWD=/var/www ; USER=root ; COMMAND=/bin/bash
+Apr 11 00:04:14 db-primary sshguard: sshguard[5349]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:04:15 ubuntu-server sshguard: sshguard[6663]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:04:19 db-primary sudo: svc-backup : TTY=pts/1 ; PWD=/home/svc-backup ; USER=root ; COMMAND=/usr/bin/systemctl restart nginx
+Apr 11 00:04:20 db-primary sudo: pam_unix(sudo:session): session opened for user root by svc-backup(uid=1000)
+Apr 11 00:04:23 web01 nginx: nginx[6309]: worker process 6043 exited on signal 15
+Apr 11 00:04:29 ubuntu-server kernel: [UFW BLOCK] IN=eth0 OUT= SRC=194.61.24.9 DST=10.0.0.5 PROTO=TCP SPT=21293 DPT=8080
+Apr 11 00:04:33 db-primary sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:04:37 web01 sudo: deploy : TTY=pts/2 ; PWD=/opt/app ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:04:42 app-node2 sshd[4443]: Failed password for svc-backup from 91.240.118.5 port 39033 ssh2
+Apr 11 00:04:46 db-primary nginx: nginx[4401]: worker process 9275 exited on signal 15
+Apr 11 00:04:52 app-node2 systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:04:57 db-primary sudo: svc-backup : TTY=pts/1 ; PWD=/var/www ; USER=root ; COMMAND=/bin/bash
+Apr 11 00:04:59 db-primary sshd[1757]: Failed password for invalid user mayur from 185.220.101.47 port 32162 ssh2
+Apr 11 00:05:03 ubuntu-server nginx: nginx[4085]: worker process 7191 exited on signal 15
+Apr 11 00:05:07 app-node2 systemd: systemd[1]: Started Session 705 of user mayur.
+Apr 11 00:05:11 ubuntu-server systemd: systemd[1]: Started Session 531 of user deploy.
+Apr 11 00:05:16 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:05:18 app-node2 sshd[6198]: Failed password for oracle from 194.61.24.9 port 59444 ssh2
+Apr 11 00:05:23 app-node2 sshd[9976]: Failed password for root from 194.61.24.9 port 11454 ssh2
+Apr 11 00:05:27 app-node2 systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:05:32 db-primary NetworkManager: NetworkManager[4919]: <info>  [time] device (eth0): state change: activated -> activated
+Apr 11 00:05:36 db-primary systemd: systemd[1]: Reached target Network Manager.
+Apr 11 00:05:39 web01 CRON: CRON[3267]: (root) CMD (test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily ))
+Apr 11 00:05:41 web01 CRON: CRON[4505]: (root) CMD (test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily ))
+Apr 11 00:05:45 ubuntu-server nginx: nginx[9790]: worker process 8533 exited on signal 15
