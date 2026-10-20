@@ -12,6 +12,7 @@ const MAX_EVENTS = 100
 const ATTACK_BADGES = {
   PRIVILEGE_ESCALATION: { label: '🔴 PRIV_ESC',    cls: 'bg-red-950 text-red-400 border-red-800' },
   REMOTE_EXECUTION:     { label: '🟠 REMOTE_EXEC', cls: 'bg-orange-950 text-orange-400 border-orange-800' },
+  PATH_TRAVERSAL:       { label: '🟠 PATH_TRAVERSAL', cls: 'bg-amber-950 text-amber-400 border-amber-800' },
   BRUTE_FORCE:          { label: '🟡 BRUTE_FORCE', cls: 'bg-yellow-950 text-yellow-400 border-yellow-800' },
 }
 

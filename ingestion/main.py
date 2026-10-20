@@ -383,6 +383,14 @@ async def dataset_upload(file: UploadFile = File(...)):
         events, total, valid = parse_lines(lines)
         by_ip = aggregate_by_ip(events)
 
+        # Reset previous per-IP log and memory state so this file is evaluated independently
+        from ingestion.services.log_parser import reset_state as reset_log_state
+        from ingestion.services.ip_memory import reset_state as reset_ip_memory
+        from ingestion.services.response_engine import reset_state as reset_response_state
+        reset_log_state()
+        reset_ip_memory()
+        reset_response_state()
+
         results = []
         anomaly_count = 0
 
