@@ -11,7 +11,11 @@ router.post("/login", async (req, res) => {
   }
 
   const validUser = username === process.env.AUTH_USERNAME;
-  const validPass = validUser && (await bcrypt.compare(password, process.env.AUTH_PASSWORD_HASH || ""));
+  const isPlainMatch = Boolean(process.env.AUTH_PASSWORD && password === process.env.AUTH_PASSWORD);
+  const isHashMatch = Boolean(
+    process.env.AUTH_PASSWORD_HASH && (await bcrypt.compare(password, process.env.AUTH_PASSWORD_HASH))
+  );
+  const validPass = validUser && (isPlainMatch || isHashMatch);
   if (!validUser || !validPass) {
     return res.status(401).json({ error: "Invalid credentials" });
   }
