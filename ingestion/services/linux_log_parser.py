@@ -328,6 +328,7 @@ def aggregate_by_ip(events: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         "log_cleared":             0,
         "recon_attempts":          0,
         "total_events":            0,
+        "evidence_lines":          [],
         "usernames":               set(),
         "first_seen":              None,
         "last_seen":               None,
@@ -346,6 +347,11 @@ def aggregate_by_ip(events: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         a["log_cleared"]             += ev.get("log_cleared", 0)
         a["recon_attempts"]          += ev.get("recon", 0)
         a["total_events"]            += 1
+
+        # Capture evidence log lines that triggered security alerts
+        if ev.get("privilege_escalation") or ev.get("failed_login") or ev.get("suspicious_command"):
+            if len(a["evidence_lines"]) < 10:
+                a["evidence_lines"].append(ev["raw"])
 
         if ev.get("username"):
             a["usernames"].add(ev["username"])

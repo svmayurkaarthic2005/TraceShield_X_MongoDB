@@ -78,18 +78,24 @@ function AttackSummaryPanel({ results = [], summary = {} }) {
       </div>
 
       {/* Status breakdown */}
-      <div className="grid grid-cols-4 gap-3 mb-4">
-        {[
-          { key: 'EXTREME_RISK', label: 'Extreme',   color: '#FF003C' },
-          { key: 'HIGH_RISK',    label: 'High Risk',  color: '#FF6B00' },
-          { key: 'SUSPICIOUS',   label: 'Suspicious', color: '#FFEA00' },
-          { key: 'NORMAL',       label: 'Normal',     color: '#39FF14' },
-        ].map(({ key, label, color }) => (
-          <div key={key} className="rounded-lg border border-[#1E2D4A] bg-[#070B14] px-3 py-2 text-center">
-            <div className="text-xl font-bold mono-text" style={{ color }}>{statusCounts[key]}</div>
-            <div className="text-[9px] text-[#94A3B8] mono-text uppercase tracking-widest mt-0.5">{label}</div>
-          </div>
-        ))}
+      <div className="mb-4">
+        <div className="flex items-center justify-between text-[9px] font-bold text-[#94A3B8] mono-text uppercase tracking-widest mb-1.5">
+          <span>Source-Level Risk Classification</span>
+          <span className="text-[#64748B]">{summary.unique_ips} Sources · {summary.total_lines || 70} Total Log Lines</span>
+        </div>
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { key: 'EXTREME_RISK', label: 'Extreme Sources',   color: '#FF003C' },
+            { key: 'HIGH_RISK',    label: 'High Risk Sources',  color: '#FF6B00' },
+            { key: 'SUSPICIOUS',   label: 'Suspicious Sources', color: '#FFEA00' },
+            { key: 'NORMAL',       label: 'Normal Sources',     color: '#39FF14' },
+          ].map(({ key, label, color }) => (
+            <div key={key} className="rounded-lg border border-[#1E2D4A] bg-[#070B14] px-3 py-2 text-center">
+              <div className="text-xl font-bold mono-text" style={{ color }}>{statusCounts[key]}</div>
+              <div className="text-[9px] text-[#94A3B8] mono-text uppercase tracking-widest mt-0.5">{label}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Attack type breakdown */}
@@ -348,15 +354,64 @@ function LogUploadPanel({ persistedResults, onDatasetUploaded }) {
                     <span className="text-[#00F0FF]">{f.usernames.join(', ')}</span>
                   </div>
                 )}
-                <div className="text-[11px] mono-text">
+                <div className="text-[11px] mono-text mb-2">
                   <span className="text-[#94A3B8] text-[9px] uppercase">Signals: </span>
                   <span className="text-[#E2E8F0]">{r.reason || 'none'}</span>
                 </div>
+
+                {/* Score breakdown & decision rule */}
+                {r.components && (
+                  <div className="mb-3 text-[10px] mono-text text-[#94A3B8] bg-black/30 p-2.5 rounded border border-[#1E2D4A]/50 space-y-1.5">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      <span><strong className="text-white">ML Score (20%):</strong> {r.components.ml_score ?? '—'}</span>
+                      <span><strong className="text-white">Temporal/Rate (15%):</strong> {r.components.temporal_score ?? '—'}</span>
+                      <span><strong className="text-white">Volume Count (20%):</strong> {r.components.count_score ?? '—'}</span>
+                      <span><strong className="text-white">Log Forensics (20%):</strong> {r.components.log_score ?? '—'}</span>
+                      <span><strong className="text-white">Spike & Trend (25%):</strong> {((r.components.spike_score || 0) + (r.components.trend_score || 0)).toFixed(1)}</span>
+                    </div>
+                    <div className="text-[9.5px] text-[#00F0FF] pt-1.5 border-t border-[#1E2D4A]/50 flex items-start gap-1.5">
+                      <i className="ph ph-info mt-0.5" />
+                      <div>
+                        <span><strong>Formula & Decision: </strong>Weighted baseline = {(
+                          (0.20 * (r.components.ml_score || 0)) +
+                          (0.15 * (r.components.temporal_score || 0)) +
+                          (0.20 * (r.components.count_score || 0)) +
+                          (0.20 * (r.components.log_score || 0)) +
+                          (0.15 * (r.components.spike_score || 0)) +
+                          (0.10 * (r.components.trend_score || 0))
+                        ).toFixed(1)}. {f.privilege_escalations >= 3 ? 'Enforced Security Floor: priv_esc ≥ 3 raises final score to 65.0 (EXTREME_RISK ≥ 60.0).' : `Final Risk Score: ${r.risk_score}` }</span>
+                        <span className="block text-[#94A3B8] text-[9px] mt-0.5">Note: Signal '{r.reason}' shows indicator tags exceeding risk thresholds (ml ≥ 60, rate ≥ 50), not an arithmetic sum.</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Triggering evidence log lines */}
+                {f.evidence_lines?.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-[#1E2D4A]/50 mb-3">
+                    <div className="text-[10px] font-bold text-[#FF003C] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                      <i className="ph ph-warning-diamond" /> Triggering Evidence Log Lines ({f.evidence_lines.length})
+                    </div>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto bg-black/50 rounded p-2.5 border border-[#FF003C]/30">
+                      {f.evidence_lines.map((ln, k) => (
+                        <div key={k} className="text-[10px] mono-text text-[#E2E8F0] select-all bg-[#FF003C]/5 px-2 py-1 rounded border-l-2 border-[#FF003C]">
+                          {ln}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {(r.actions || []).length > 0 && (
-                  <div className="flex gap-2 mt-2">
-                    {r.actions.map((a, j) => (
-                      <span key={j} className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase ${m.bg} ${m.border} ${m.color}`}>{a}</span>
-                    ))}
+                  <div>
+                    <span className="text-[9px] font-bold text-[#94A3B8] mono-text uppercase block mb-1.5">Automated Mitigations Dispatched:</span>
+                    <div className="flex gap-2">
+                      {r.actions.map((a, j) => (
+                        <span key={j} className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase ${m.bg} ${m.border} ${m.color}`}>
+                          <i className="ph ph-shield-check mr-1" />{a}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
