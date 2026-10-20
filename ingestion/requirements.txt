@@ -5,3 +5,5 @@ python-dotenv
 pydantic
 scikit-learn
 numpy
+pandas
+python-multipart
