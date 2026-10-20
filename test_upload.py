@@ -1,4 +1,4 @@
-import urllib.request, json
+import urllib.request, json, sys
 
 def post_file(url, filepath):
     boundary = b'----TraceShieldBoundary'
@@ -18,12 +18,13 @@ def post_file(url, filepath):
     with urllib.request.urlopen(req) as r:
         return json.loads(r.read())
 
+filepath = sys.argv[1] if len(sys.argv) > 1 else 'ingestion/data/linux-logs-70-privOnly-log.txt'
 r = post_file(
     'http://127.0.0.1:8001/dataset/upload',
-    'ingestion/data/linux-logs-70-privOnly-log.txt'
+    filepath
 )
 print('Summary:', json.dumps(r['summary'], indent=2))
-print('Top results:')
-for res in r['results'][:5]:
+print('Results breakdown:')
+for res in r['results']:
     at = res.get('attack_type', 'N/A')
-    print(f"  ip={res['ip']} status={res['status']} score={res['risk_score']} attack_type={at} actions={res['actions']}")
+    print(f"  source={res['ip']:<15} status={res['status']:<13} score={res['risk_score']:<5} attack_type={at:<20} actions={res['actions']}")
