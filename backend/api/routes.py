@@ -14,6 +14,7 @@ Port 8000 does NOT:
 """
 
 import logging
+import os
 import random
 import re
 import datetime
@@ -25,8 +26,9 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-INGEST_URL      = "http://127.0.0.1:8001/ingest"
-INGEST_LOGS_URL = "http://127.0.0.1:8001/ingest/logs"
+_INGEST_BASE    = os.getenv("INGEST_BASE_URL", "http://127.0.0.1:8001")
+INGEST_URL      = f"{_INGEST_BASE}/ingest"
+INGEST_LOGS_URL = f"{_INGEST_BASE}/ingest/logs"
 
 try:
     from backend.core.ml_model      import get_sample_row
