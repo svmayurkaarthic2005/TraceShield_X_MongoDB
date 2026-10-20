@@ -11,9 +11,10 @@ import { requireAuth } from "./middleware/auth.js";
 const PORT = process.env.PORT || 5000;
 const CORE_URL = process.env.CORE_URL || "http://127.0.0.1:8000";
 const INGEST_URL = process.env.INGEST_URL || "http://127.0.0.1:8001";
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:5173";
 
 const app = express();
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ origin: ALLOWED_ORIGIN }));
 app.use(morgan("dev"));
 
 // requireAuth only reads headers, so it's safe to run before the proxies —
