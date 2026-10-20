@@ -52,6 +52,9 @@ def classify_attack_type(log_summary: dict) -> str:
     if suspicious >= 1:
         return "REMOTE_EXECUTION"
 
+    if sensitive >= 1:
+        return "DATA_EXFILTRATION"
+
     if failed >= 2:
         return "BRUTE_FORCE"
 
