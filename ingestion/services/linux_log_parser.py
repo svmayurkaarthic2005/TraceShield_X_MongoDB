@@ -55,7 +55,8 @@ _RE_FAILED_LOGIN = re.compile(
     r'|illegal user'
     r'|input_userauth_request.*invalid user'
     r'|Connection closed by.*\[preauth\]'
-    r'|Disconnected from.*\[preauth\]',
+    r'|Disconnected from.*\[preauth\]'
+    r'|incorrect password',
     re.IGNORECASE,
 )
 
@@ -162,6 +163,8 @@ _RE_PRIVILEGE_ESC = re.compile(
     r'|pam_unix.*sudo.*session.*opened for user root'
     r'|sudo.*session opened for user root'
     r'|pam_unix\(sudo:session\).*session opened for user root'
+    # Web server / service daemon abusing sudo
+    r'|sudo:\s*(?:www-data|nobody|apache|nginx)\s*:'
     # Kernel/audit privilege escalation
     r'|pkexec'
     r'|polkit'

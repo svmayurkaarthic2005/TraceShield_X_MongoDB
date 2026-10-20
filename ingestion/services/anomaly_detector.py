@@ -39,20 +39,20 @@ def classify_attack_type(log_summary: dict) -> str:
     sensitive  = log_summary.get("sensitive_file_accesses", 0)
     suspicious = log_summary.get("suspicious_commands", 0)
     failed     = log_summary.get("failed_logins", 0)
+    priv_esc   = log_summary.get("privilege_escalations", 0)
 
-    # PRIVILEGE_ESCALATION: sudo + at least one malicious signal
-    # Pure admin sudo (apt update, systemctl restart, etc.) is NOT an attack
-    if sudo >= 2 and (sensitive > 0 or suspicious > 0 or failed > 0):
+    # PRIVILEGE_ESCALATION: root shell spawn, service account sudo, or sudo + malicious signal
+    if priv_esc > 0 or (sudo >= 2 and (sensitive > 0 or suspicious > 0 or failed > 0)):
         return "PRIVILEGE_ESCALATION"
 
-    # Safe sudo only (no malicious indicators) → normal admin activity
-    if sudo > 0 and sensitive == 0 and suspicious == 0 and failed == 0:
+    # Safe sudo only (no malicious indicators and no privilege escalation) → normal admin activity
+    if sudo > 0 and sensitive == 0 and suspicious == 0 and failed == 0 and priv_esc == 0:
         return "NORMAL_ACTIVITY"
 
     if suspicious >= 1:
         return "REMOTE_EXECUTION"
 
-    if failed >= 3:
+    if failed >= 2:
         return "BRUTE_FORCE"
 
     return "NORMAL_ACTIVITY"

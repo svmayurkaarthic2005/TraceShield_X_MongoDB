@@ -174,10 +174,11 @@ def compute_risk(ip: str, request_count: int, timestamp: datetime) -> dict:
     sudo     = log_details.get("sudo_attempts", 0)
     susp_cmd = log_details.get("suspicious_commands", 0)
     sens     = log_details.get("sensitive_file_accesses", 0)
+    priv_esc = log_details.get("privilege_escalations", 0)
 
-    no_threat_signals = (failed == 0 and sudo == 0 and susp_cmd == 0 and sens == 0)
-    # Safe sudo only (no malicious signals) — treat as clean baseline
-    safe_sudo_only = (sudo > 0 and failed == 0 and susp_cmd == 0 and sens == 0)
+    no_threat_signals = (failed == 0 and sudo == 0 and susp_cmd == 0 and sens == 0 and priv_esc == 0)
+    # Safe sudo only (no malicious signals, no privilege escalation root shells) — treat as clean baseline
+    safe_sudo_only = (sudo > 0 and failed == 0 and susp_cmd == 0 and sens == 0 and priv_esc == 0)
 
     if no_threat_signals or safe_sudo_only:
         # Cap final score at 20 — volume/ML variance alone cannot raise risk
@@ -208,7 +209,15 @@ def compute_risk(ip: str, request_count: int, timestamp: datetime) -> dict:
     # ── Log-signal floor overrides ────────────────────────────────────────────
     # Applied BEFORE spike overrides. Score is set first, status follows.
 
-    # ── Tier 1: EXTREME_RISK floors (score ≥ 70) ─────────────────────────────
+    # ── Tier 1: EXTREME_RISK floors (score ≥ 60) ─────────────────────────────
+
+    # Multiple privilege escalation events (root shells, service accounts)
+    if priv_esc >= 3:
+        if final < 65.0:
+            final = 65.0
+            override_triggered = True
+            logger.warning(
+                "LOG OVERRIDE [EXTREME/65] | ip=%s priv_esc=%d", ip, priv_esc)
 
     # Privilege escalation: /etc/shadow + sudo → EXTREME (score 70)
     if sens >= 1 and sudo >= 1:
@@ -245,6 +254,13 @@ def compute_risk(ip: str, request_count: int, timestamp: datetime) -> dict:
 
     # ── Tier 2: HIGH_RISK floors (score ≥ 35) ────────────────────────────────
 
+    # Privilege escalation: root shell spawn (/bin/bash), sudo abuse by daemon account
+    if priv_esc >= 1 and final < 45.0:
+        final = 45.0
+        override_triggered = True
+        logger.warning(
+            "LOG OVERRIDE [HIGH/45] | ip=%s priv_esc=%d", ip, priv_esc)
+
     # Single suspicious command (nc, wget, bash, chmod 777) → HIGH
     if susp_cmd >= 1 and final < 35.0:
         final = 35.0
@@ -268,12 +284,12 @@ def compute_risk(ip: str, request_count: int, timestamp: datetime) -> dict:
 
     # ── Tier 3: SUSPICIOUS floors (score ≥ 20) ───────────────────────────────
 
-    # 3+ failed logins → SUSPICIOUS
-    if failed >= 3 and final < 20.0:
-        final = 20.0
+    # 2+ failed logins (or failed sudo attempts) → SUSPICIOUS
+    if failed >= 2 and final < 25.0:
+        final = 25.0
         override_triggered = True
         logger.warning(
-            "LOG OVERRIDE [SUSPICIOUS/20] | ip=%s failed_logins=%d", ip, failed)
+            "LOG OVERRIDE [SUSPICIOUS/25] | ip=%s failed_logins=%d", ip, failed)
 
     # Spike override: extreme spike (>90) → score must be in EXTREME_RISK range
     if spike >= 90.0 and final < 60.0:
