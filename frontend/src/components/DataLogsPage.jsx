@@ -29,24 +29,50 @@ function AttackSummaryPanel({ results = [], summary = {} }) {
     if (statusCounts[r.status] !== undefined) statusCounts[r.status]++
   })
 
-  const totalAttacks = Object.values(attackCounts).reduce((a, b) => a + b, 0)
-  const hasAttacks   = totalAttacks > 0
+  const totalAttacks  = Object.values(attackCounts).reduce((a, b) => a + b, 0)
+  const hasExtreme    = statusCounts.EXTREME_RISK > 0
+  const hasHigh       = statusCounts.HIGH_RISK > 0
+  const hasSuspicious = statusCounts.SUSPICIOUS > 0
+
+  let bannerTitle = 'CLEAN BASELINE — NO ATTACKS OR ANOMALIES DETECTED'
+  let bannerBorder = 'border-[#39FF14]/20 bg-[#39FF14]/5'
+  let bannerColor  = 'text-[#39FF14]'
+  let bannerIcon   = 'ph-shield-check text-[#39FF14]'
+
+  if (hasExtreme || totalAttacks > 0) {
+    bannerTitle  = totalAttacks > 0
+      ? `THREAT CONFIRMED — ${totalAttacks} ATTACK PATTERN${totalAttacks > 1 ? 'S' : ''} DETECTED`
+      : 'THREAT CONFIRMED — CRITICAL ANOMALY IDENTIFIED'
+    bannerBorder = 'border-[#FF003C]/40 bg-[#FF003C]/5'
+    bannerColor  = 'text-[#FF003C]'
+    bannerIcon   = 'ph-warning-octagon text-[#FF003C]'
+  } else if (hasHigh) {
+    bannerTitle  = 'HIGH-RISK ANOMALY DETECTED — INVESTIGATION REQUIRED'
+    bannerBorder = 'border-orange-500/40 bg-orange-950/20'
+    bannerColor  = 'text-orange-400'
+    bannerIcon   = 'ph-warning text-orange-400'
+  } else if (hasSuspicious) {
+    bannerTitle  = 'SUSPICIOUS ACTIVITY FLAGGED — MONITORING & VERIFICATION REQUIRED'
+    bannerBorder = 'border-yellow-500/40 bg-yellow-950/20'
+    bannerColor  = 'text-yellow-400'
+    bannerIcon   = 'ph-magnifying-glass text-yellow-400'
+  }
 
   return (
-    <div className={`rounded-xl border p-5 mb-4 ${hasAttacks ? 'border-[#FF003C]/40 bg-[#FF003C]/5' : 'border-[#39FF14]/20 bg-[#39FF14]/5'}`}>
+    <div className={`rounded-xl border p-5 mb-4 ${bannerBorder}`}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <i className={`ph ${hasAttacks ? 'ph-warning-octagon text-[#FF003C]' : 'ph-shield-check text-[#39FF14]'} text-xl`} />
+        <i className={`ph ${bannerIcon} text-xl`} />
         <div>
-          <div className={`text-sm font-bold font-['Rajdhani'] uppercase tracking-widest ${hasAttacks ? 'text-[#FF003C]' : 'text-[#39FF14]'}`}>
-            {hasAttacks ? `${totalAttacks} Attack${totalAttacks > 1 ? 's' : ''} Detected` : 'No Attacks Detected'}
+          <div className={`text-sm font-bold font-['Rajdhani'] uppercase tracking-widest ${bannerColor}`}>
+            {bannerTitle}
           </div>
           <div className="text-[10px] text-[#94A3B8] mono-text mt-0.5">
-            {summary.total_lines?.toLocaleString()} lines · {summary.valid_events?.toLocaleString()} events · {summary.unique_ips} IPs
+            {summary.total_lines?.toLocaleString()} lines · {summary.valid_events?.toLocaleString()} events · {summary.unique_ips} Source/Host(s)
           </div>
         </div>
-        <div className="ml-auto flex items-center gap-1.5 text-[10px] text-[#39FF14] mono-text">
-          <i className="ph ph-broadcast text-xs" /> Streamed to Dashboard
+        <div className="ml-auto flex items-center gap-1.5 text-[10px] text-[#00F0FF] mono-text border border-[#00F0FF]/30 px-2 py-0.5 rounded bg-[#00F0FF]/10">
+          <i className="ph ph-file-text text-xs" /> SCOPE: UPLOADED FILE
         </div>
       </div>
 
@@ -214,14 +240,14 @@ function LogUploadPanel({ persistedResults, onDatasetUploaded }) {
           <div className="flex items-center gap-2 mb-3">
             <i className="ph ph-table text-[#00F0FF] text-sm" />
             <span className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-widest mono-text">
-              Per-IP Detection Results
+              Per-Source Detection Results
             </span>
             <span className="ml-auto text-[10px] text-[#94A3B8] mono-text">click a row for details</span>
           </div>
 
           {/* Table header */}
           <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[9px] font-bold text-[#94A3B8] uppercase tracking-widest mono-text border-b border-[#1E2D4A]">
-            <div className="col-span-2">IP Address</div>
+            <div className="col-span-2">Source / Host</div>
             <div className="col-span-2">Status</div>
             <div className="col-span-1 text-right">Score</div>
             <div className="col-span-3">Attack Type</div>
@@ -239,10 +265,15 @@ function LogUploadPanel({ persistedResults, onDatasetUploaded }) {
                   className={`grid grid-cols-12 gap-2 px-3 py-2.5 cursor-pointer transition-all border-b border-[#1E2D4A]/30 mono-text text-[11px]
                     ${isSelected ? 'bg-[#00F0FF]/5 border-l-2 border-l-[#00F0FF]' : 'hover:bg-[#121A2F]'}`}>
 
-                  {/* IP */}
-                  <div className="col-span-2 flex items-center gap-1.5">
+                  {/* Source / Host */}
+                  <div className="col-span-2 flex items-center gap-1.5" title={r.ip}>
                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${m.dot}`} />
-                    <span className="text-[#E2E8F0] font-bold truncate">{r.ip}</span>
+                    <span className="text-[#E2E8F0] font-bold truncate">
+                      {r.ip === 'host_system' ? 'host_system' : r.ip}
+                    </span>
+                    {r.ip === 'host_system' && (
+                      <span className="text-[8px] px-1 py-0.2 rounded bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/30 font-bold">HOST</span>
+                    )}
                   </div>
 
                   {/* Status badge */}
@@ -662,6 +693,9 @@ export default function DataLogsPage({ liveEvents = [], datasetResults = null, o
         <div>
           <h2 className="text-4xl font-bold text-white tracking-tight font-['Rajdhani'] uppercase flex items-center gap-3 flex-wrap">
             System <span className="text-[#39FF14]">Event Viewer</span>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30 mono-text">
+              SCOPE: LIVE SYSTEM TELEMETRY
+            </span>
             {logsSimulated && <SimulatedBadge title="No real log lines loaded — these entries are generated in the browser" />}
           </h2>
           <p className={`mt-1 mono-text text-sm ${logsSimulated ? 'text-[#FFB020]/80' : 'text-[#94A3B8]'}`}>

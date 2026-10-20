@@ -400,6 +400,7 @@ async def dataset_upload(file: UploadFile = File(...)):
                 device=f"upload:{file.filename}",
                 request_count=compute_request_count(features),
                 timestamp=ts,
+                skip_block_check=True,
             )
 
             status      = result["status"]
@@ -409,25 +410,6 @@ async def dataset_upload(file: UploadFile = File(...)):
 
             if status != "NORMAL":
                 anomaly_count += 1
-
-            ws_payload = {
-                "ip":            ip,
-                "device":        f"upload:{file.filename}",
-                "request_count": features.get("total_events", 1),
-                "status":        status,
-                "risk_score":    score,
-                "attack_type":   attack_type,
-                "actions":       response.get("actions_taken", []),
-                "reason":        response.get("reason", "N/A"),
-                "log_score":     result["components"].get("log_score", 0),
-                "ml_score":      result["components"].get("ml_score", 0),
-                "timestamp":     ts.isoformat(),
-                "usernames":     features.get("usernames", []),
-                "log_signals":   build_reason(features),
-            }
-            await _ws_manager.broadcast(ws_payload)
-            _store_event(ws_payload)
-            await asyncio.sleep(0.075)
 
             results.append({
                 "ip":          ip,

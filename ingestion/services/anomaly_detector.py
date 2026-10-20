@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
 
 
 def process_event(ip: str, device: str, request_count: int,
-                  timestamp: datetime) -> dict:
+                  timestamp: datetime, skip_block_check: bool = False) -> dict:
     """
     Full real-time pipeline:
         1. Compute weighted risk score (ML+temporal+count+spike+trend).
@@ -69,11 +69,11 @@ def process_event(ip: str, device: str, request_count: int,
         3. Store graph relationships in Neo4j.
         4. Return structured result.
     """
-    logger.info("INGEST | ip=%-16s device=%-20s count=%d ts=%s",
-                ip, device, request_count, timestamp.isoformat())
+    logger.info("INGEST | ip=%-16s device=%-20s count=%d ts=%s skip_block=%s",
+                ip, device, request_count, timestamp.isoformat(), skip_block_check)
 
-    # Already blocked — short-circuit
-    if is_blocked(ip):
+    # Already blocked — short-circuit (applied only to live network packets, never to forensic file uploads)
+    if not skip_block_check and is_blocked(ip):
         logger.warning("BLOCKED IP attempted access | ip=%s device=%s", ip, device)
         return {
             "status":       "EXTREME_RISK",
