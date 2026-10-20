@@ -11,10 +11,25 @@ import { requireAuth } from "./middleware/auth.js";
 const PORT = process.env.PORT || 5000;
 const CORE_URL = process.env.CORE_URL || "http://127.0.0.1:8000";
 const INGEST_URL = process.env.INGEST_URL || "http://127.0.0.1:8001";
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:5173";
+// ALLOWED_ORIGIN can be a comma-separated list, e.g.:
+//   http://localhost:5173,https://trace-shield-x.vercel.app
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
 
 const app = express();
-app.use(cors({ origin: ALLOWED_ORIGIN }));
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // Allow server-to-server / curl requests (no Origin header)
+      if (!origin) return cb(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      cb(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    credentials: true,
+  })
+);
 app.use(morgan("dev"));
 
 // requireAuth only reads headers, so it's safe to run before the proxies —
