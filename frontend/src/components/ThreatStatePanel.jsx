@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
-
-const ingest = axios.create({ baseURL: 'http://127.0.0.1:8001' })
+import api, { ingest } from '../services/api'
 
 function Badge({ label, color }) {
   const styles = {
@@ -23,7 +21,7 @@ export default function ThreatStatePanel() {
   const fetch = async () => {
     setLoading(true)
     try {
-      const r = await ingest.get('/blocked')
+      const r = await api.get(ingest('/blocked'))
       setState(r.data)
     } catch {}
     setLoading(false)
@@ -34,13 +32,13 @@ export default function ThreatStatePanel() {
   const resetState = async () => {
     if (!window.confirm('Clear all blocks, honeypots, flags and per-IP log signals?')) return
     setLoading(true)
-    try { await ingest.post('/state/reset') } catch {}
+    try { await api.post(ingest('/state/reset')) } catch {}
     await fetch()
   }
 
   const unblockIp = async (ip) => {
     setLoading(true)
-    try { await ingest.delete(`/blocked/${ip}`) } catch {}
+    try { await api.delete(ingest(`/blocked/${ip}`)) } catch {}
     await fetch()
   }
 

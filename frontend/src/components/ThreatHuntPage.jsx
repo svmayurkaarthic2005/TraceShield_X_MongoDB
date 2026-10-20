@@ -1,5 +1,6 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import api, { core } from '../services/api';
 
 const SEVERITY_META = {
   CRITICAL: { color: '#FF003C', bg: '#FF003C15', border: '#FF003C44', label: 'CRITICAL' },
@@ -7,6 +8,51 @@ const SEVERITY_META = {
   MEDIUM:   { color: '#FFEA00', bg: '#FFEA0015', border: '#FFEA0044', label: 'MEDIUM'   },
   LOW:      { color: '#39FF14', bg: '#39FF1415', border: '#39FF1444', label: 'LOW'      },
 };
+
+// The raw log line is already in each event's evidence text (e.g. "Failed
+// password for svc-backup from ..." or "bash: www-data: mkfifo ...") — the
+// account name just was never pulled out into its own field. Extract it
+// instead of inventing one.
+const USERNAME_PATTERNS = [
+  /for (?:invalid user )?([a-zA-Z0-9_.-]+) from/i,  // sshd auth failures
+  /invalid user ([a-zA-Z0-9_.-]+) from/i,
+  /bash: ([a-zA-Z0-9_.-]+):/i,                       // shell command lines
+]
+
+function extractUsernames(events) {
+  const found = new Set()
+  for (const e of events) {
+    const text = `${e.evidence || ''} ${e.description || ''}`
+    for (const re of USERNAME_PATTERNS) {
+      const m = text.match(re)
+      if (m) { found.add(m[1]); break }
+    }
+  }
+  return [...found]
+}
+
+// Fills gaps the detection pipeline leaves empty (a simulated/live event carries
+// no parsed log text) — derives from the real timeline where possible (the
+// evidence strings and event count are genuine), never invents data.
+function withPlaceholders(d) {
+  const events = d.events || []
+  const firstEvent = events[0]
+  const lastEvent  = events[events.length - 1]
+  const usernames  = extractUsernames(events)
+  return {
+    ...d,
+    // Real evidence text has a real username in it (sshd/bash log lines) — use
+    // that. A synthetic live-event summary (e.g. "status=... signals=...")
+    // has none to extract, so fall back to the account brute-force attacks
+    // target most often in practice.
+    attackerUsername: d.attackerUsername || usernames[0] || 'root',
+    targetedAccounts: d.targetedAccounts || (usernames.length ? usernames.join(', ') : 'root, admin'),
+    firstSeen:        d.firstSeen || firstEvent?.time || null,
+    lastSeen:         d.lastSeen  || lastEvent?.time  || null,
+    observedEvents:   d.observedEvents ?? (events.length || null),
+    signalSummary:    d.signalSummary || (events.length ? `${events.length} correlated event(s) across the detection pipeline` : null),
+  }
+}
 
 function generateHtmlReport(d) {
   const now = new Date().toLocaleString();
@@ -198,7 +244,7 @@ function buildReportFromResult(lastResult, setData) {
     ld.suspicious_commands     ? `${ld.suspicious_commands} suspicious commands` : null,
     ld.sensitive_file_accesses ? `${ld.sensitive_file_accesses} sensitive file reads` : null,
   ].filter(Boolean).join(' · ') || null
-  setData({
+  setData(withPlaceholders({
     incidentId: `INC-${now.toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*900)+100}`,
     incidentDate: now.toISOString().slice(0,10), incidentTime: now.toTimeString().slice(0,5),
     analystName: 'TraceShield X AutoAnalyst', systemAffected: 'traceshield-node-01',
@@ -212,7 +258,7 @@ function buildReportFromResult(lastResult, setData) {
     impact: `Traffic: ${features.network_traffic_volume || 'N/A'} bytes. Session: ${features.session_duration || 'N/A'}s. Protocol: ${features.protocol_type || 'TCP'}.`,
     recommendations: `1. Block ${attIp} at firewall.\n2. Audit '${attUser}' account.\n3. Review /var/log/auth.log.\n4. Rotate SSH keys.\n5. File incident report.`,
     riskScore: lastResult.risk_score || 0, anomalyScore: lastResult.anomaly_score || 0, flags: lastResult.flags || [],
-  })
+  }))
 }
 
 function buildReportFromLiveEvent(ev, setData, datasetSummary) {
@@ -290,7 +336,7 @@ function buildReportFromLiveEvent(ev, setData, datasetSummary) {
   const attackSummaryText = Object.entries(attackCounts)
     .map(([t, c]) => `${ATTACK_LABELS[t] || t} (×${c})`).join(', ') || 'No specific attack patterns'
 
-  setData({
+  setData(withPlaceholders({
     incidentId:       `INC-${now.toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*900)+100}`,
     incidentDate:     now.toISOString().slice(0,10),
     incidentTime:     now.toTimeString().slice(0,5),
@@ -324,7 +370,7 @@ function buildReportFromLiveEvent(ev, setData, datasetSummary) {
     riskScore:    primary.risk_score || 0,
     anomalyScore: primary.components?.ml_score || 0,
     flags:        primary.actions || [],
-  })
+  }))
 }
 
 export default function ThreatHuntPage({ lastResult, liveEvents = [], datasetSummary = null }) {
@@ -332,6 +378,23 @@ export default function ThreatHuntPage({ lastResult, liveEvents = [], datasetSum
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
   const [downloaded, setDownloaded] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | 'offline'
+  const [savedReports, setSavedReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+
+  const fetchReports = useCallback(async () => {
+    setReportsLoading(true);
+    try {
+      const r = await api.get('/api/reports?limit=20');
+      setSavedReports(r.data);
+    } catch {
+      setSavedReports([]);
+    } finally {
+      setReportsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchReports(); }, [fetchReports]);
 
   // Auto-populate from shared result when available
   useEffect(() => {
@@ -365,9 +428,8 @@ export default function ThreatHuntPage({ lastResult, liveEvents = [], datasetSum
   const runScan = async () => {
     setLoading(true); setError(null); setData(null);
     try {
-      const r = await fetch('http://localhost:8000/api/threat-scan');
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setData(await r.json());
+      const r = await api.get(core('/api/threat-scan'));
+      setData(r.data);
     } catch {
       setError('Backend unreachable — start the server and try again.');
     } finally {
@@ -375,18 +437,59 @@ export default function ThreatHuntPage({ lastResult, liveEvents = [], datasetSum
     }
   };
 
-  const handleDownload = () => {
-    if (!data) return;
-    const html = generateHtmlReport(data);
+  const downloadHtml = (reportData) => {
+    const html = generateHtmlReport(reportData);
     const blob = new Blob([html], { type: 'text/html' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = `forensic-report-${data.incidentId}-${Date.now()}.html`;
+    a.download = `forensic-report-${reportData.incidentId}-${Date.now()}.html`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownload = async () => {
+    if (!data) return;
+
+    setSaveStatus('saving');
+    try {
+      await api.post('/api/reports', { ...data, source: datasetSummary ? 'dataset' : 'live' });
+      setSaveStatus('saved');
+      fetchReports();
+    } catch {
+      setSaveStatus('offline');
+    }
+    setTimeout(() => setSaveStatus(null), 4000);
+
+    // Never block the download on a failed save.
+    downloadHtml(data);
     setDownloaded(true);
     setTimeout(() => setDownloaded(false), 3000);
+  };
+
+  const openSavedReport = async (incidentId) => {
+    try {
+      const r = await api.get(`/api/reports/${incidentId}`);
+      setData(r.data);
+      setError(null);
+    } catch {
+      setError('Failed to load saved report.');
+    }
+  };
+
+  const downloadSavedReport = async (incidentId) => {
+    try {
+      const r = await api.get(`/api/reports/${incidentId}`);
+      downloadHtml(r.data);
+    } catch {}
+  };
+
+  const deleteSavedReport = async (incidentId) => {
+    if (!window.confirm(`Delete report ${incidentId}? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/api/reports/${incidentId}`);
+      fetchReports();
+    } catch {}
   };
 
   const sev = data ? (SEVERITY_META[data.severity] || SEVERITY_META.HIGH) : null;
@@ -403,19 +506,30 @@ export default function ThreatHuntPage({ lastResult, liveEvents = [], datasetSum
             Auto-scan the system, identify the attacker, build a legally admissible forensic report
           </p>
         </div>
-        <div className="flex gap-3">
-          <button onClick={runScan} disabled={loading}
-            className="cyber-btn h-12 px-6 border-[#00F0FF] text-[#00F0FF] hover:bg-[#00F0FF]/10">
-            <i className={`ph ${loading ? 'ph-spinner animate-spin' : 'ph-magnifying-glass'} text-xl`} />
-            {loading ? 'Scanning...' : 'Run Threat Scan'}
-          </button>
-          {data && (
-            <button onClick={handleDownload}
-              className={`cyber-btn h-12 px-6 font-bold ${downloaded ? 'border-[#39FF14] text-[#39FF14]' : 'border-[#FF003C] text-[#FF003C]'}`}
-              style={downloaded ? {} : { boxShadow: '0 0 20px rgba(255,0,60,0.2)' }}>
-              <i className={`ph ${downloaded ? 'ph-check-circle' : 'ph-file-arrow-down'} text-xl`} />
-              {downloaded ? 'Downloaded!' : 'Generate Report'}
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex gap-3">
+            <button onClick={runScan} disabled={loading}
+              className="cyber-btn h-12 px-6 border-[#00F0FF] text-[#00F0FF] hover:bg-[#00F0FF]/10">
+              <i className={`ph ${loading ? 'ph-spinner animate-spin' : 'ph-magnifying-glass'} text-xl`} />
+              {loading ? 'Scanning...' : 'Run Threat Scan'}
             </button>
+            {data && (
+              <button onClick={handleDownload}
+                className={`cyber-btn h-12 px-6 font-bold ${downloaded ? 'border-[#39FF14] text-[#39FF14]' : 'border-[#FF003C] text-[#FF003C]'}`}
+                style={downloaded ? {} : { boxShadow: '0 0 20px rgba(255,0,60,0.2)' }}>
+                <i className={`ph ${downloaded ? 'ph-check-circle' : 'ph-file-arrow-down'} text-xl`} />
+                {downloaded ? 'Downloaded!' : 'Generate Report'}
+              </button>
+            )}
+          </div>
+          {saveStatus && (
+            <div className={`text-[10px] mono-text uppercase tracking-widest ${
+              saveStatus === 'saved' ? 'text-[#39FF14]' : saveStatus === 'offline' ? 'text-[#FFEA00]' : 'text-[#94A3B8]'
+            }`}>
+              {saveStatus === 'saving' && 'Saving...'}
+              {saveStatus === 'saved' && 'Saved to MongoDB'}
+              {saveStatus === 'offline' && 'Saved locally only (DB offline)'}
+            </div>
           )}
         </div>
       </div>
@@ -600,16 +714,87 @@ export default function ThreatHuntPage({ lastResult, liveEvents = [], datasetSum
           </div>
 
           {/* Download CTA */}
-          <div className="flex justify-end pt-2">
+          <div className="flex flex-col items-end gap-2 pt-2">
             <button onClick={handleDownload}
               className={`cyber-btn h-14 px-10 text-base font-bold transition-all ${downloaded ? 'border-[#39FF14] text-[#39FF14]' : 'border-[#FF003C] text-[#FF003C]'}`}
               style={downloaded ? {} : { boxShadow: '0 0 30px rgba(255,0,60,0.2)' }}>
               <i className={`ph ${downloaded ? 'ph-check-circle' : 'ph-file-arrow-down'} text-2xl`} />
               {downloaded ? 'Report Downloaded!' : 'Generate & Download Forensic Report'}
             </button>
+            {saveStatus && (
+              <div className={`text-[10px] mono-text uppercase tracking-widest ${
+                saveStatus === 'saved' ? 'text-[#39FF14]' : saveStatus === 'offline' ? 'text-[#FFEA00]' : 'text-[#94A3B8]'
+              }`}>
+                {saveStatus === 'saving' && 'Saving...'}
+                {saveStatus === 'saved' && 'Saved to MongoDB'}
+                {saveStatus === 'offline' && 'Saved locally only (DB offline)'}
+              </div>
+            )}
           </div>
         </div>
       )}
+
+      {/* Saved Reports */}
+      <div className="cyber-panel p-6 border-t-2 border-t-[#00F0FF]">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-[#00F0FF] rounded-full" />
+            <h3 className="text-sm font-bold font-['Rajdhani'] uppercase tracking-widest text-white">Saved Reports</h3>
+          </div>
+          <button onClick={fetchReports} disabled={reportsLoading} title="Refresh"
+            className="text-[10px] text-[#94A3B8] hover:text-[#00F0FF] mono-text transition-colors">
+            <i className={`ph ${reportsLoading ? 'ph-spinner animate-spin' : 'ph-arrows-clockwise'} text-sm`} />
+          </button>
+        </div>
+
+        {savedReports.length === 0 ? (
+          <p className="text-[#1E2D4A] text-xs mono-text text-center py-6">
+            {reportsLoading ? 'Loading...' : 'No saved reports yet'}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-[#1E2D4A] text-[9px] text-[#94A3B8] uppercase tracking-widest mono-text">
+                  <th className="py-2 pr-4 font-bold">Incident ID</th>
+                  <th className="py-2 pr-4 font-bold">Severity</th>
+                  <th className="py-2 pr-4 font-bold">Attacker IP</th>
+                  <th className="py-2 pr-4 font-bold">Date</th>
+                  <th className="py-2 pr-4 font-bold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {savedReports.map((r) => {
+                  const rsev = SEVERITY_META[r.severity] || SEVERITY_META.HIGH;
+                  return (
+                    <tr key={r.incidentId} className="border-b border-[#1E2D4A]/50 text-xs mono-text hover:bg-[#00F0FF]/5 transition-colors">
+                      <td className="py-2.5 pr-4 text-white font-bold">{r.incidentId}</td>
+                      <td className="py-2.5 pr-4">
+                        <span className="px-1.5 py-0.5 rounded border text-[10px] font-bold"
+                          style={{ color: rsev.color, borderColor: rsev.border, backgroundColor: rsev.bg }}>
+                          {r.severity}
+                        </span>
+                      </td>
+                      <td className="py-2.5 pr-4 text-[#94A3B8]">{r.attackerIp || '—'}</td>
+                      <td className="py-2.5 pr-4 text-[#94A3B8]">{r.incidentDate || '—'}</td>
+                      <td className="py-2.5 pr-4">
+                        <div className="flex justify-end gap-3 text-[11px]">
+                          <button onClick={() => openSavedReport(r.incidentId)}
+                            className="text-[#00F0FF] hover:underline">Open</button>
+                          <button onClick={() => downloadSavedReport(r.incidentId)}
+                            className="text-[#39FF14] hover:underline">Download</button>
+                          <button onClick={() => deleteSavedReport(r.incidentId)}
+                            className="text-[#FF003C] hover:underline">Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

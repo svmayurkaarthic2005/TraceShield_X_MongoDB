@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios'
+import api, { core, ingest } from '../services/api'
 import SimulatedBadge from './SimulatedBadge';
-
-const api    = axios.create({ baseURL: 'http://localhost:8000' })
-const ingest = axios.create({ baseURL: 'http://127.0.0.1:8001' })
 
 const STATUS_META = {
   EXTREME_RISK: { label: 'EXTREME RISK', color: 'text-[#FF003C]', bg: 'bg-[#FF003C]/10', border: 'border-[#FF003C]/40', dot: 'bg-[#FF003C]' },
@@ -116,7 +113,7 @@ function LogUploadPanel({ persistedResults, onDatasetUploaded }) {
     try {
       const form = new FormData()
       form.append('file', file)
-      const r = await ingest.post('/dataset/upload', form, {
+      const r = await api.post(ingest('/dataset/upload'), form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       setSummary(r.data.summary)
@@ -539,7 +536,7 @@ export default function DataLogsPage({ liveEvents = [], datasetResults = null, o
 
   // Load real log lines from backend on mount
   useEffect(() => {
-    api.get('/api/dataset/logs')
+    api.get(core('/api/dataset/logs'))
       .then(r => {
         const parsed = (r.data.lines || []).map(l => parseRawLine(l))
         setAllRealLogs(parsed)
@@ -674,7 +671,7 @@ export default function DataLogsPage({ liveEvents = [], datasetResults = null, o
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => { api.get('/api/dataset/logs')
+          <button onClick={() => { api.get(core('/api/dataset/logs'))
               .then(r => { const p = (r.data.lines||[]).map(l=>parseRawLine(l)); setAllRealLogs(p); setLogs(p); setLogsSimulated(p.length === 0) })
               .catch(()=>{ setLogs(generateBatch(activeSource,80)); setLogsSimulated(true) }) }}
             className="cyber-btn h-9 px-4 text-[11px]">

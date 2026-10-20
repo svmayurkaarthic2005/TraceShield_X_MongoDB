@@ -1,8 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import axios from 'axios'
-
-const ingest = axios.create({ baseURL: 'http://127.0.0.1:8001' })
-const api    = axios.create({ baseURL: 'http://localhost:8000' })
+import api, { core, ingest } from '../services/api'
 
 const FAKE_COMMANDS = [
   'cat /etc/shadow',
@@ -65,7 +62,7 @@ export default function HoneypotPage({ liveEvents = [] }) {
   const fetchState = async () => {
     setLoading(true)
     try {
-      const r = await ingest.get('/blocked')
+      const r = await api.get(ingest('/blocked'))
       setState(r.data)
     } catch {}
     setLoading(false)
@@ -75,18 +72,16 @@ export default function HoneypotPage({ liveEvents = [] }) {
     fetchState()
     const t = setInterval(fetchState, 4000)
     // Load real attack rows from dataset
-    fetch('http://localhost:8000/api/dataset/rows')
-      .then(r => r.json())
-      .then(d => {
-        const attacks = (d.rows || []).filter(r => Number(r.attack_detected||0) === 1 || Number(r.privilege_escalation||0) === 1)
+    api.get(core('/api/dataset/rows'))
+      .then(r => {
+        const attacks = (r.data.rows || []).filter(row => Number(row.attack_detected||0) === 1 || Number(row.privilege_escalation||0) === 1)
         setDatasetAttacks(attacks)
       })
       .catch(() => {})
     // Pre-populate terminal from the raw log corpus — the dataset rows carry no
     // log text, so they cannot fill the terminal.
-    fetch('http://localhost:8000/api/dataset/logs')
-      .then(r => r.json())
-      .then(d => setTermLines((d.lines || []).slice(0, 10)))
+    api.get(core('/api/dataset/logs'))
+      .then(r => setTermLines((r.data.lines || []).slice(0, 10)))
       .catch(() => {})
     return () => clearInterval(t)
   }, [])
@@ -115,14 +110,14 @@ export default function HoneypotPage({ liveEvents = [] }) {
 
     try {
       // Simulate via backend which delegates to ingestion
-      const r = await api.post('/api/simulate', { count: 3 })
+      const r = await api.post(core('/api/simulate'), { count: 3 })
       const results = r.data
 
       // Push real attack rows to ingest
       const attacksToSend = datasetAttacks.slice(0, 3)
       for (const row of attacksToSend) {
         try {
-          await ingest.post('/ingest', {
+          await api.post(ingest('/ingest'), {
             ip: row.src_ip || '10.0.1.55',
             device: row.name || 'Privilege Escalation',
             request_count: Math.max(

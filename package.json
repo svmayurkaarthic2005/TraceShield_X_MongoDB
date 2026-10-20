@@ -1,0 +1,10 @@
+{
+  "name": "traceshield",
+  "private": true,
+  "scripts": {
+    "dev:all": "concurrently -n server,frontend -c blue,green \"npm --prefix server run dev\" \"npm --prefix frontend run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

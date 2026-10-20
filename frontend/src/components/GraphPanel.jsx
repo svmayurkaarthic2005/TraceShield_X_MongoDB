@@ -1,4 +1,4 @@
-import axios from 'axios'
+import api, { core } from '../services/api'
 
 const NODE_META = {
   User:    { bg: 'bg-[#00F0FF]/10', text: 'text-[#00F0FF]', icon: 'ph-user-gear', border: 'border-[#00F0FF]/30' },
@@ -18,7 +18,7 @@ function getNodeType(node) {
 export default function GraphPanel({ nodes = [], edges = [], onCleared }) {
   const handleClear = async () => {
     try {
-      await axios.delete('http://localhost:8000/api/graph/clear')
+      await api.delete(core('/api/graph/clear'))
       if (onCleared) onCleared()
     } catch (e) {
       console.error('Failed to clear graph', e)

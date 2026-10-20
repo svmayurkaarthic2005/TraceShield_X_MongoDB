@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api, { ingest } from '../services/api';
 import SimulatedBadge, { SimulatedFrame } from './SimulatedBadge';
-
-const ingest = axios.create({ baseURL: 'http://127.0.0.1:8001' });
 
 function PulseGraph({ data, threshold = 75 }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -166,7 +164,7 @@ export default function AnalyticsPage({ lastResult, liveEvents = [] }) {
   // Seed from events the ingestion service has actually scored. The dataset
   // rows carry no source IP, so they cannot populate a per-IP table.
   useEffect(() => {
-    ingest.get('/events/recent?limit=100')
+    api.get(ingest('/events/recent?limit=100'))
       .then(r => {
         const events = r.data.events || []
         if (!events.length) { setIpTable(generateIpTable()); setIpTableSimulated(true); return }

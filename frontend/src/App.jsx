@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import axios from 'axios'
+import api, { core, ingest as ingestPath, WS_URL, clearToken } from './services/api'
 import RiskCard from './components/RiskCard'
 import AlertFeed from './components/AlertFeed'
 import GraphPanel from './components/GraphPanel'
@@ -11,9 +11,6 @@ import AnalyticsPage from './components/AnalyticsPage'
 import DataLogsPage from './components/DataLogsPage'
 import ThreatHuntPage from './components/ThreatHuntPage'
 import HoneypotPage from './components/HoneypotPage'
-
-const api    = axios.create({ baseURL: 'http://localhost:8000' })
-const ingest = axios.create({ baseURL: 'http://127.0.0.1:8001' })
 
 function StatusDot({ ok, label, showLabel = true }) {
   return (
@@ -39,7 +36,7 @@ function mergeEvents(existing, incoming) {
   return [...fresh, ...existing].slice(0, MAX_EVENTS)
 }
 
-export default function App() {
+export default function App({ onLogout }) {
   const [view, setView]             = useState('home')
   const [status, setStatus]         = useState(null)
   const [result, setResult]         = useState(null)
@@ -94,7 +91,7 @@ export default function App() {
     function connect() {
       if (destroyed) return
       try {
-        const ws = new WebSocket('ws://127.0.0.1:8001/ws')
+        const ws = new WebSocket(WS_URL)
         wsRef.current = ws
 
         ws.onopen = () => { if (!destroyed) setWsStatus('connected') }
@@ -152,7 +149,7 @@ export default function App() {
 
   // Fetch recent events on mount so history is available immediately
   useEffect(() => {
-    ingest.get('/events/recent?limit=100')
+    api.get(ingestPath('/events/recent?limit=100'))
       .then(r => setLiveEvents(r.data.events || []))
       .catch(() => {})
   }, [])
@@ -166,7 +163,7 @@ export default function App() {
       setDatasetPausedUntil(null)
       setDatasetResults(null)
       datasetPausedUntilRef.current = null
-      ingest.get('/events/recent?limit=100')
+      api.get(ingestPath('/events/recent?limit=100'))
         .then(r => setLiveEvents(r.data.events || []))
         .catch(() => {})
     }, ms)
@@ -174,20 +171,20 @@ export default function App() {
   }, [datasetPausedUntil])
 
   useEffect(() => {
-    api.get('/api/status')
+    api.get(core('/api/status'))
       .then(r => setStatus(r.data))
       .catch(() => setStatus(null))
   }, [])
 
   const fetchGraph = useCallback(() =>
-    api.get('/api/graph').then(r => setGraph(r.data)).catch(() => {}), [])
+    api.get(core('/api/graph')).then(r => setGraph(r.data)).catch(() => {}), [])
 
   const fetchAnalyze = useCallback(async () => {
     if (loading) return
     setLoading(true)
     setError(null)
     try {
-      const r = await api.get('/api/analyze')
+      const r = await api.get(core('/api/analyze'))
       setResult(r.data)
       await fetchGraph()
     } catch {
@@ -202,7 +199,7 @@ export default function App() {
     if (!autoRefresh) return
     const interval = setInterval(async () => {
       try {
-        const r = await api.post('/api/simulate', { count: 1 })
+        const r = await api.post(core('/api/simulate'), { count: 1 })
         // /api/simulate already ingests the event and broadcasts it over the
         // WebSocket, so the live feed updates without a second post here.
         setResult(r.data[0])
@@ -215,7 +212,7 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
-      const r = await api.post('/api/simulate', { count: 1 })
+      const r = await api.post(core('/api/simulate'), { count: 1 })
 
       // Always update the left panel with attack details. /api/simulate has
       // already ingested the event and broadcast it to the live feed.
@@ -308,14 +305,18 @@ export default function App() {
                 <span className="text-sm font-bold text-[#FFB020]/70 mono-text">12.4ms <i className="ph ph-chart-line-up" /></span>
              </div>
              <div className="h-10 w-[1px] bg-[#1E2D4A]" />
-             <div className="flex items-center gap-3 cursor-pointer group">
+             <div
+               className="flex items-center gap-3 cursor-pointer group"
+               onClick={() => { clearToken(); onLogout?.() }}
+               title="Log out"
+             >
                 <div className="text-right hidden sm:block">
-                   <div className="text-sm font-bold text-white group-hover:text-[#00F0FF] transition-colors font-['Rajdhani'] flex items-center gap-1.5 justify-end">
-                     OPERATOR_01 <SimulatedBadge label="sim" title="Static placeholder — there is no authentication in this build" />
+                   <div className="text-sm font-bold text-white group-hover:text-[#FF003C] transition-colors font-['Rajdhani'] flex items-center gap-1.5 justify-end">
+                     OPERATOR_01 <i className="ph ph-sign-out text-sm" />
                    </div>
-                   <div className="text-[9px] text-[#00F0FF] mono-text">SEC_LVL_04</div>
+                   <div className="text-[9px] text-[#00F0FF] mono-text group-hover:text-[#FF003C] transition-colors">LOGOUT</div>
                 </div>
-                <div className="w-10 h-10 rounded bg-[#1E2D4A] flex items-center justify-center border border-[#1E2D4A] group-hover:border-[#00F0FF] transition-all overflow-hidden relative">
+                <div className="w-10 h-10 rounded bg-[#1E2D4A] flex items-center justify-center border border-[#1E2D4A] group-hover:border-[#FF003C] transition-all overflow-hidden relative">
                    <i className="ph ph-user-focus text-2xl text-[#94A3B8]" />
                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] border-2 border-[#0D1323] rounded-full" />
                 </div>

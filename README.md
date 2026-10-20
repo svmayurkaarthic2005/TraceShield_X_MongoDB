@@ -93,7 +93,7 @@
 
 ## 🏗️ Architecture
 
-TraceShield X++ runs as **two independent backend services** paired with a **React frontend**:
+TraceShield X++ runs as **two independent Python backend services**, an **Express gateway**, and a **React frontend**:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -102,7 +102,15 @@ TraceShield X++ runs as **two independent backend services** paired with a **Rea
 │   HomePage  │  Dashboard  │  Analytics  │  ThreatHunt  │  Logs   │
 │   LiveFeed  │  GraphPanel │  Honeypot   │  RiskCard    │  Alerts │
 └──────────────────────────┬────────────────────────────────────────┘
-                           │ HTTP (Axios)
+                           │ HTTP (Axios) + WebSocket — single origin
+                           ▼
+          ┌────────────────────────────────────┐
+          │       EXPRESS GATEWAY (:5000)       │
+          │  /api/core/*  → Core Backend proxy  │
+          │  /api/ingest/*, /ws → Ingestion proxy│
+          │  /api/reports → MongoDB (Mongoose)  │
+          └──────────────┬──────────┬───────────┘
+              /api/core/* │          │ /api/ingest/*, /ws
               ┌────────────┴────────────────┐
               ▼                             ▼
 ┌──────────────────────────┐  ┌──────────────────────────────────┐
@@ -132,14 +140,24 @@ TraceShield X++ runs as **two independent backend services** paired with a **Rea
           │  (:IP)─[:REDIRECTED]→(:Honey)│
           │  (:IP)─[:BLOCKED]→(:System)  │
           └──────────────────────────────┘
+
+          ┌──────────────────────────────┐
+          │      MONGODB (:27017)        │
+          │  Forensic reports only —     │
+          │  owned by the Express        │
+          │  gateway, never touched by   │
+          │  Core/Ingestion              │
+          └──────────────────────────────┘
 ```
 
 | Service | Port | Role |
 |---------|------|------|
+| **Express Gateway** | `5000` | Single origin for the frontend — reverse proxies to Core/Ingestion, proxies `/ws`, owns the Reports API |
 | **Core Backend** | `8000` | Dashboard API — ML training, risk scoring, graph building, forensic reports |
 | **Ingestion Service** | `8001` | Real-time event processing — live anomaly detection, automated response |
 | **Frontend** | `5173` | SOC-style dashboard — visualization, monitoring, threat hunting |
-| **Neo4j** | `7687` | Graph database — attack chain storage and querying |
+| **Neo4j** | `7687` | Graph database — attack chain storage and querying (unchanged) |
+| **MongoDB** | `27017` | Document store for generated forensic incident reports only |
 
 ---
 
@@ -244,8 +262,16 @@ TraceShield X++ runs as **two independent backend services** paired with a **Rea
 ### Database
 | Technology | Purpose |
 |------------|---------|
-| **Neo4j** | Graph database for attack chain visualization |
+| **Neo4j** | Graph database for attack chain visualization (unchanged) |
+| **MongoDB + Mongoose** | Document store for generated forensic incident reports only, owned by the Express gateway |
 | **In-memory dicts** | Per-IP behavioral history, blocked IPs, honeypot state |
+
+### Gateway
+| Technology | Purpose |
+|------------|---------|
+| **Node.js 18+ / Express** | Single origin for the frontend; reverse proxies to Core/Ingestion |
+| **http-proxy-middleware** | HTTP + WebSocket reverse proxying |
+| **Mongoose** | MongoDB schema/ODM for the Reports API |
 
 ---
 
@@ -272,6 +298,7 @@ Then open **http://localhost:5173** in your browser.
 - **Python** 3.10 or higher
 - **Node.js** 18+ and npm
 - **Neo4j Desktop** ([Download](https://neo4j.com/download/)) — optional but recommended
+- **MongoDB Community Server** running on `127.0.0.1:27017` — optional; only needed to persist forensic reports via the Express gateway
 
 ### 1️⃣ Backend Setup
 
@@ -311,7 +338,30 @@ pip install -r requirements.txt
 uvicorn ingestion.main:app --reload --port 8001
 ```
 
-### 3️⃣ Frontend Setup
+### 3️⃣ Express Gateway Setup
+
+```bash
+cd server
+
+# Install dependencies
+npm install
+
+cp .env.example .env
+
+# Set your login credentials — generates a bcrypt hash for AUTH_PASSWORD_HASH in .env
+node scripts/hash-password.js <your-password>
+# Then edit .env: set AUTH_USERNAME, paste the hash into AUTH_PASSWORD_HASH,
+# and set JWT_SECRET to a long random string.
+
+# Start the gateway (proxies to Core/Ingestion, serves /api/reports)
+npm run dev
+```
+
+> **Note:** If MongoDB is unreachable, the gateway logs a warning and keeps running — `/api/reports` returns `503` until MongoDB is back, everything else (proxying) is unaffected.
+
+> **Note:** `/api/reports`, `/api/core/*` and `/api/ingest/*` require a JWT (`/api/health` and `/api/auth/login` are public). The frontend's login page handles this automatically — there's just one operator account, set above. The `/ws` WebSocket proxy is **not** authenticated (a Node implementation detail — upgrade requests bypass Express middleware).
+
+### 4️⃣ Frontend Setup
 
 ```bash
 cd frontend
@@ -323,9 +373,11 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5173** in your browser.
+Open **http://localhost:5173** in your browser. The frontend talks only to the Express Gateway (`VITE_API_URL`, default `http://localhost:5000`) — it never calls Core/Ingestion directly.
 
-### 4️⃣ Neo4j Setup (Optional)
+> From the repo root, `npm install && npm run dev:all` starts the Express Gateway and the frontend together via `concurrently`.
+
+### 5️⃣ Neo4j Setup (Optional)
 
 1. Download and install [Neo4j Desktop](https://neo4j.com/download/)
 2. Create a new local DBMS and set a password
@@ -334,7 +386,15 @@ Open **http://localhost:5173** in your browser.
 
 > **Note:** If Neo4j is unavailable, the dashboard will use simulated graph data as a fallback.
 
-### 5️⃣ Dataset (Optional)
+### 6️⃣ MongoDB Setup (Optional)
+
+1. Install MongoDB Community Server and make sure `mongod` is running on `127.0.0.1:27017`
+2. No manual database/collection creation is needed — the gateway creates `traceshield.reports` on first write
+3. `server/.env.example` already points at `mongodb://127.0.0.1:27017/traceshield` by default
+
+> **Note:** MongoDB only stores forensic reports generated from the Threat Hunt page. It is never used by Neo4j, the ML models, or the Python services.
+
+### 7️⃣ Dataset (Optional)
 
 Place a real intrusion CSV at:
 ```
@@ -369,6 +429,9 @@ cp .env.example .env
 | `NEO4J_URI` | `neo4j://127.0.0.1:7687` | Neo4j Bolt connection URI |
 | `NEO4J_USER` | `TraceShieldDB` | Neo4j username |
 | `NEO4J_PASSWORD` | `12345678` | Neo4j password |
+| `MONGO_URI` | `mongodb://127.0.0.1:27017/traceshield` | MongoDB connection string — reports only |
+
+`server/.env.example` additionally defines `PORT` (gateway port, default `5000`), `CORE_URL` (`http://127.0.0.1:8000`), `INGEST_URL` (`http://127.0.0.1:8001`), and the auth settings `JWT_SECRET`, `JWT_EXPIRES_IN` (default `12h`), `AUTH_USERNAME`, and `AUTH_PASSWORD_HASH` (bcrypt — generate with `node scripts/hash-password.js <password>`). `frontend/.env.example` defines `VITE_API_URL` (default `http://localhost:5000`) — the single origin the frontend talks to.
 
 ---
 
@@ -483,24 +546,46 @@ traceshield/
 │   ├── tailwind.config.js            # Tailwind CSS configuration
 │   ├── postcss.config.js             # PostCSS configuration
 │   └── src/
-│       ├── main.jsx                  # React entry point
+│       ├── main.jsx                  # Auth gate (LoginPage vs App) + React entry point
 │       ├── App.jsx                   # Main app — routing & state management
 │       ├── index.css                 # Global styles & design system
+│       ├── services/
+│       │   └── api.js                # Single axios instance (attaches JWT, handles 401) + core()/ingest() helpers + WS_URL
 │       └── components/
 │           ├── HomePage.jsx          # Cyberpunk landing page
+│           ├── LoginPage.jsx         # JWT login form
 │           ├── RiskCard.jsx          # Animated risk score with glow effects
 │           ├── AlertFeed.jsx         # Alert badges & attack timeline
 │           ├── GraphPanel.jsx        # Attack graph visualization
 │           ├── LiveFeed.jsx          # Real-time event stream
 │           ├── AnalyticsPage.jsx     # Analytics dashboard & charts
 │           ├── DataLogsPage.jsx      # Data log viewer & search
-│           ├── ThreatHuntPage.jsx    # Threat hunting interface
+│           ├── ThreatHuntPage.jsx    # Threat hunting, forensic reports, Saved Reports panel
 │           ├── HoneypotPage.jsx      # Honeypot monitoring panel
 │           └── ThreatStatePanel.jsx  # Threat state overview
 │
-├── .env.example                      # Environment variable template
+├── server/                            # Express gateway (:5000)
+│   ├── index.js                       # App setup, auth, proxies, /api/health
+│   ├── package.json                   # npm dependencies
+│   ├── config/
+│   │   └── db.js                      # Mongoose connect, graceful degradation
+│   ├── middleware/
+│   │   └── auth.js                    # requireAuth — JWT verification
+│   ├── models/
+│   │   └── Report.js                  # Forensic report schema (unique incidentId)
+│   ├── routes/
+│   │   ├── auth.js                    # POST /api/auth/login
+│   │   ├── reports.js                 # Reports API (CRUD, MongoDB-backed, JWT-protected)
+│   │   └── proxies.js                 # /api/core, /api/ingest, /ws reverse proxies (JWT-protected, except /ws)
+│   ├── scripts/
+│   │   └── hash-password.js           # Generates a bcrypt hash for AUTH_PASSWORD_HASH
+│   └── test/
+│       └── reports.test.js            # node:test + fetch, against traceshield_test
+│
+├── .env.example                      # Environment variable template (Neo4j + MongoDB)
 ├── .gitignore                        # Git ignore rules
 ├── start.sh                          # Quick start script (WSL/Linux)
+├── package.json                      # Root: `npm run dev:all` (concurrently: server + frontend)
 ├── patch_neo4j.py                    # Neo4j schema patch utility
 ├── test_logs.py                      # Log testing script
 ├── test_upload.py                    # Upload testing script
