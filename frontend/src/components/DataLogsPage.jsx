@@ -30,6 +30,7 @@ function AttackSummaryPanel({ results = [], summary = {} }) {
   })
 
   const totalAttacks  = Object.values(attackCounts).reduce((a, b) => a + b, 0)
+  const hasAttacks    = totalAttacks > 0
   const hasExtreme    = statusCounts.EXTREME_RISK > 0
   const hasHigh       = statusCounts.HIGH_RISK > 0
   const hasSuspicious = statusCounts.SUSPICIOUS > 0
