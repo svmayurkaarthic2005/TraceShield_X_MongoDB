@@ -31,9 +31,11 @@ def load_dataset() -> pd.DataFrame:
     Returns:
         pd.DataFrame: Raw dataset with all columns.
     """
-    if os.path.exists(DATASET_PATH):
-        df = pd.read_csv(DATASET_PATH)
-        print(f"Loaded real dataset with {len(df)} rows")
+    local_data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "intrusion_data.csv")
+    target_path = DATASET_PATH if os.path.exists(DATASET_PATH) else local_data_path
+    if os.path.exists(target_path):
+        df = pd.read_csv(target_path)
+        print(f"Loaded real dataset with {len(df)} rows from {target_path}")
         return df
 
     try:
