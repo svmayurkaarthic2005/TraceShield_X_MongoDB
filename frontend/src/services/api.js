@@ -33,14 +33,7 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    const isLoginRequest = err.config?.url?.includes('/api/auth/login')
-    if (err.response?.status === 401 && !isLoginRequest) {
-      clearToken()
-      window.location.reload()
-    }
-    return Promise.reject(err)
-  }
+  (err) => Promise.reject(err)
 )
 
 export function core(path) {

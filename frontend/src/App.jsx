@@ -36,7 +36,7 @@ function mergeEvents(existing, incoming) {
   return [...fresh, ...existing].slice(0, MAX_EVENTS)
 }
 
-export default function App({ onLogout }) {
+export default function App() {
   const [view, setView]             = useState('home')
   const [status, setStatus]         = useState(null)
   const [result, setResult]         = useState(null)
@@ -306,17 +306,16 @@ export default function App({ onLogout }) {
              </div>
              <div className="h-10 w-[1px] bg-[#1E2D4A]" />
              <div
-               className="flex items-center gap-3 cursor-pointer group"
-               onClick={() => { clearToken(); onLogout?.() }}
-               title="Log out"
+               className="flex items-center gap-3"
+               title="Active Operator"
              >
                 <div className="text-right hidden sm:block">
-                   <div className="text-sm font-bold text-white group-hover:text-[#FF003C] transition-colors font-['Rajdhani'] flex items-center gap-1.5 justify-end">
-                     OPERATOR_01 <i className="ph ph-sign-out text-sm" />
+                   <div className="text-sm font-bold text-white font-['Rajdhani'] flex items-center gap-1.5 justify-end">
+                     OPERATOR_01
                    </div>
-                   <div className="text-[9px] text-[#00F0FF] mono-text group-hover:text-[#FF003C] transition-colors">LOGOUT</div>
+                   <div className="text-[9px] text-[#39FF14] mono-text">ACTIVE_SESSION</div>
                 </div>
-                <div className="w-10 h-10 rounded bg-[#1E2D4A] flex items-center justify-center border border-[#1E2D4A] group-hover:border-[#FF003C] transition-all overflow-hidden relative">
+                <div className="w-10 h-10 rounded bg-[#1E2D4A] flex items-center justify-center border border-[#1E2D4A] overflow-hidden relative">
                    <i className="ph ph-user-focus text-2xl text-[#94A3B8]" />
                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] border-2 border-[#0D1323] rounded-full" />
                 </div>
