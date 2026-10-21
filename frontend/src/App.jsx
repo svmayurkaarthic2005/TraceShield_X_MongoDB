@@ -36,7 +36,7 @@ function mergeEvents(existing, incoming) {
   return [...fresh, ...existing].slice(0, MAX_EVENTS)
 }
 
-export default function App() {
+export default function App({ onLogout }) {
   const [view, setView]             = useState('home')
   const [status, setStatus]         = useState(null)
   const [result, setResult]         = useState(null)
@@ -319,6 +319,13 @@ export default function App() {
                    <i className="ph ph-user-focus text-2xl text-[#94A3B8]" />
                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] border-2 border-[#0D1323] rounded-full" />
                 </div>
+                <button
+                  onClick={onLogout}
+                  title="Log out"
+                  className="w-10 h-10 flex items-center justify-center text-[#94A3B8] hover:text-[#FF003C] border border-[#1E2D4A] hover:border-[#FF003C]/50 rounded-md transition-colors"
+                >
+                  <i className="ph ph-sign-out text-xl" />
+                </button>
              </div>
           </div>
         </header>
