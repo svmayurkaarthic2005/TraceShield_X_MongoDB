@@ -12,8 +12,13 @@ const STATUS_META = {
 const ATTACK_META = {
   PRIVILEGE_ESCALATION: { label: '🔴 PRIV_ESC',    cls: 'text-red-400 bg-red-950/60 border-red-800/60',       icon: 'ph-key', color: '#FF003C' },
   REMOTE_EXECUTION:     { label: '🟠 REMOTE_EXEC', cls: 'text-orange-400 bg-orange-950/60 border-orange-800/60', icon: 'ph-terminal-window', color: '#FF6B00' },
-  BRUTE_FORCE:          { label: '🟡 BRUTE_FORCE', cls: 'text-yellow-400 bg-yellow-950/60 border-yellow-800/60', icon: 'ph-lock-key-open', color: '#FFEA00' },
-  DATA_EXFILTRATION:    { label: '🟣 DATA_EXFIL',   cls: 'text-purple-400 bg-purple-950/60 border-purple-800/60', icon: 'ph-file-lock', color: '#B026FF' },
+  BRUTE_FORCE:          { label: '🟡 BRUTE_FORCE',    cls: 'text-yellow-400 bg-yellow-950/60 border-yellow-800/60', icon: 'ph-lock-key-open', color: '#FFEA00' },
+  PATH_TRAVERSAL:       { label: '🟠 PATH_TRAVERSAL', cls: 'text-amber-400 bg-amber-950/60 border-amber-800/60',     icon: 'ph-folder-notch-open', color: '#F59E0B' },
+  DATA_EXFILTRATION:    { label: '🟣 DATA_EXFIL',      cls: 'text-purple-400 bg-purple-950/60 border-purple-800/60', icon: 'ph-file-lock', color: '#B026FF' },
+  // Flagged anomalous by the risk engine with NO recognizable log signature
+  // (e.g. a pure volume/ML-driven spike) — deliberately styled differently
+  // (cyan, not red/orange) since it is NOT a confirmed attack category.
+  BEHAVIORAL_ANOMALY:   { label: '🔵 ANOMALY',         cls: 'text-cyan-400 bg-cyan-950/60 border-cyan-800/60',     icon: 'ph-waveform', color: '#00F0FF' },
   NORMAL_ACTIVITY:      { label: null, cls: '' },
 }
 

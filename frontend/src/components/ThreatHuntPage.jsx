@@ -70,7 +70,7 @@ function generateHtmlReport(d) {
   }).join('');
 
   // Attack type breakdown section
-  const ATTACK_COLORS = { PRIVILEGE_ESCALATION: '#dc2626', REMOTE_EXECUTION: '#ea580c', BRUTE_FORCE: '#ca8a04' }
+  const ATTACK_COLORS = { PRIVILEGE_ESCALATION: '#dc2626', REMOTE_EXECUTION: '#ea580c', BRUTE_FORCE: '#ca8a04', BEHAVIORAL_ANOMALY: '#0891b2' }
   const attackBreakdown = d.attackCounts && Object.keys(d.attackCounts).length > 0
     ? '<div class="sec"><div class="st">Attack Type Breakdown</div>' +
       '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">' +
@@ -280,6 +280,8 @@ function buildReportFromLiveEvent(ev, setData, datasetSummary) {
     PRIVILEGE_ESCALATION: 'Privilege Escalation via sudo',
     REMOTE_EXECUTION:     'Remote Code Execution',
     BRUTE_FORCE:          'SSH Brute Force Attack',
+    // Not a confirmed attack — anomalous behavior with no recognizable log signature.
+    BEHAVIORAL_ANOMALY:   'Anomalous Behavior (No Signature)',
   }
 
   // Primary attacker = highest scoring result that has a real source IP.

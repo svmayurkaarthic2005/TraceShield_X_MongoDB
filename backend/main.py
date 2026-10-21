@@ -27,14 +27,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="TraceShield X++ API", lifespan=lifespan)
 
+import os
+
+allowed_env = os.getenv("ALLOWED_ORIGINS", os.getenv("ALLOWED_ORIGIN", ""))
+backend_origins = [
+    "http://localhost:5173", "http://127.0.0.1:5173",
+    "http://localhost:3000", "http://127.0.0.1:3000",
+    "https://trace-shield-x.vercel.app",
+]
+if allowed_env:
+    backend_origins.extend([o.strip() for o in allowed_env.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    # localhost and 127.0.0.1 are separate origins to a browser — the dev server
-    # is reachable on both, so both have to be allowed.
-    allow_origins=[
-        "http://localhost:5173", "http://127.0.0.1:5173",
-        "http://localhost:3000", "http://127.0.0.1:3000",
-    ],
+    allow_origins=list(set(backend_origins)),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

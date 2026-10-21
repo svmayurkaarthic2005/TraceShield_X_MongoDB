@@ -74,9 +74,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+allowed_env = os.getenv("ALLOWED_ORIGINS", os.getenv("ALLOWED_ORIGIN", ""))
+ingest_origins = [
+    "http://localhost:5173", "http://127.0.0.1:5173",
+    "http://localhost:3000", "http://127.0.0.1:3000",
+    "https://trace-shield-x.vercel.app",
+]
+if allowed_env:
+    ingest_origins.extend([o.strip() for o in allowed_env.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=list(set(ingest_origins)),
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -174,6 +184,20 @@ class ConnectionManager:
 
 _ws_manager = ConnectionManager()
 
+# Serializes the two batch dataset endpoints (/dataset/logs, /dataset/upload):
+# both reset_log_state()/reset_ip_memory()/reset_response_state() and then
+# populate that same global state from their own batch. Two concurrent
+# batches interleaving those steps can mix one batch's IP history into the
+# other's results. The lock makes concurrent batch requests queue instead of
+# interleaving — it does not touch /ingest, so real-time single-event
+# ingestion is never blocked waiting on a batch job.
+# ponytail: single global lock serializes ALL batch jobs process-wide, not
+# just colliding ones — fine at this traffic shape (occasional forensic
+# uploads, not a hot path); upgrade to per-dataset/job-scoped state if batch
+# throughput ever matters. Also only correct within one process — running
+# multiple workers still needs a cross-process lock (e.g. Redis), undone here.
+_dataset_batch_lock = asyncio.Lock()
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -251,7 +275,8 @@ async def analyze_priv_esc(body: DatasetLogsRequest):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-
+@app.post("/dataset/logs")
+async def dataset_logs(body: DatasetLogsRequest):
     """
     Analyze a batch of raw Linux log lines from any log format.
 
@@ -260,7 +285,24 @@ async def analyze_priv_esc(body: DatasetLogsRequest):
 
     Input:  { "log_lines": ["<raw log line>", ...] }
     Output: { "summary": {...}, "results": [{ip, risk_score, status, ...}] }
+
+    No callers currently use this route (frontend and tests only ever hit
+    /dataset/upload, which has identical scoring logic). State is reset
+    first for the same reason /dataset/upload resets it: without this, a
+    batch submitted here would be scored against leftover per-IP history
+    from whatever was submitted earlier in the process's lifetime.
     """
+    async with _dataset_batch_lock:
+        return await _run_dataset_logs(body)
+
+
+async def _run_dataset_logs(body: "DatasetLogsRequest"):
+    from ingestion.services.log_parser import reset_state as reset_log_state
+    from ingestion.services.ip_memory import reset_state as reset_ip_memory
+    from ingestion.services.response_engine import reset_state as reset_response_state
+    reset_log_state()
+    reset_ip_memory()
+    reset_response_state()
     try:
         if not body.log_lines:
             raise HTTPException(status_code=400, detail="log_lines must not be empty")
@@ -368,15 +410,20 @@ async def dataset_upload(file: UploadFile = File(...)):
 
     Accepts: any .log, .txt, or plain text file.
     """
+    content = await file.read()
+    async with _dataset_batch_lock:
+        return await _run_dataset_upload(file.filename, content)
+
+
+async def _run_dataset_upload(filename: str, content: bytes):
     try:
-        content = await file.read()
         try:
             text = content.decode("utf-8")
         except UnicodeDecodeError:
             text = content.decode("latin-1")  # fallback for non-UTF8 logs
 
         lines = text.splitlines()
-        logger.info("DATASET/UPLOAD | file=%s lines=%d", file.filename, len(lines))
+        logger.info("DATASET/UPLOAD | file=%s lines=%d", filename, len(lines))
 
         # Reuse the same dataset/logs logic
         from ingestion.services.linux_log_parser import parse_lines, aggregate_by_ip, compute_request_count, build_reason
@@ -405,7 +452,7 @@ async def dataset_upload(file: UploadFile = File(...)):
             ts = datetime.now(timezone.utc).replace(tzinfo=None)
             result = process_event(
                 ip=ip,
-                device=f"upload:{file.filename}",
+                device=f"upload:{filename}",
                 request_count=compute_request_count(features),
                 timestamp=ts,
                 skip_block_check=True,
@@ -433,10 +480,10 @@ async def dataset_upload(file: UploadFile = File(...)):
         results.sort(key=lambda r: r["risk_score"], reverse=True)
 
         logger.info("DATASET/UPLOAD DONE | file=%s ips=%d anomalies=%d",
-                    file.filename, len(by_ip), anomaly_count)
+                    filename, len(by_ip), anomaly_count)
 
         return {
-            "filename": file.filename,
+            "filename": filename,
             "summary": {
                 "total_lines":  total,
                 "valid_events": valid,
@@ -496,13 +543,37 @@ def ml_status():
 
 
 @app.get("/ml/evaluate")
-def ml_evaluate_endpoint():
-    """Evaluate the trained model and return anomaly metrics."""
+def ml_evaluate_endpoint(split: str = "test", scenario: str = None):
+    """
+    Evaluate the persisted model on a held-out split of the synthetic dataset.
+
+    split: "test" (default, held-out — never used for training or
+    contamination selection), "val" (used only for contamination/threshold
+    comparisons, see compare_contamination), or "all" (every row, including
+    training rows — NOT a held-out measurement, labeled as such in the
+    response). Does not train a model implicitly; returns 400 if none exists.
+
+    scenario: optionally restrict to one synthetic generation category —
+    normal_typical, normal_benign_spike, attack_signature, attack_volume_only
+    — to see the false-positive/false-negative trade-off for volume-only
+    traffic separately from signature-bearing traffic.
+    """
+    if split not in ("train", "val", "test", "all"):
+        raise HTTPException(status_code=400, detail="split must be one of: train, val, test, all")
     try:
-        result = ml_evaluate(csv_path=None)
+        result = ml_evaluate(csv_path=None, split=None if split == "all" else split, scenario=scenario)
         return result
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/ml/splits")
+def ml_splits_endpoint():
+    """Report each split's size, class balance and scenario composition."""
+    from ingestion.services.ml_training import describe_splits
+    return describe_splits(csv_path=None)
 
 
 @app.get("/blocked")

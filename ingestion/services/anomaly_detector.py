@@ -19,21 +19,42 @@ logger = logging.getLogger(__name__)
 
 # ── Attack type classification ────────────────────────────────────────────────
 
-def classify_attack_type(log_summary: dict) -> str:
+def classify_attack_type(log_summary: dict, status: str = "NORMAL") -> str:
     """
-    Derive attack type purely from extracted feature signals.
+    Derive attack type from extracted LOG feature signals — falling back to
+    BEHAVIORAL_ANOMALY when risk_engine.py flagged the event as non-NORMAL
+    with no recognizable log signature at all (e.g. a pure volume/ML-driven
+    anomaly, see risk_engine.py's clean-baseline-guard ML override).
 
-    Priority: PRIVILEGE_ESCALATION > REMOTE_EXECUTION > BRUTE_FORCE > NORMAL_ACTIVITY
+    Priority: PRIVILEGE_ESCALATION > REMOTE_EXECUTION > PATH_TRAVERSAL >
+    BRUTE_FORCE > BEHAVIORAL_ANOMALY (if status != NORMAL) > NORMAL_ACTIVITY
 
-    PRIVILEGE_ESCALATION requires sudo PLUS at least one malicious indicator
-    (sensitive file access, suspicious command, or failed logins).
+    PRIVILEGE_ESCALATION requires either an explicit priv-esc log event, or
+    sudo used ALONGSIDE a sensitive-file access (sudo cat /etc/shadow is a
+    privilege-escalation attempt by definition — the actor is using elevated
+    rights to read a credential file, regardless of exit code), or repeated
+    sudo (>=2) combined with any other malicious indicator.
     Pure administrative sudo (apt update, systemctl restart, etc.) = NORMAL_ACTIVITY.
+
+    This labels ATTEMPTED behavior from log evidence; it never claims the
+    read/command actually succeeded (no exit-code or output signal is
+    available here) — see risk_engine.py for severity, which is scored
+    separately from this label. BEHAVIORAL_ANOMALY is weaker still: it means
+    "the risk engine found this anomalous" with NO log evidence of what kind
+    of attack, if any — it is explicitly not a confirmed attack category, and
+    must never be read as one.
 
     Args:
         log_summary: Output of get_ip_log_summary() — aggregated counts.
+        status: The severity status already computed by risk_engine.py's
+            compute_risk() for this same event (NORMAL/SUSPICIOUS/HIGH_RISK/
+            EXTREME_RISK). Only used for the BEHAVIORAL_ANOMALY fallback —
+            every signature-based branch above it is decided from log
+            evidence alone, unaffected by status.
 
     Returns:
-        One of: PRIVILEGE_ESCALATION, REMOTE_EXECUTION, BRUTE_FORCE, NORMAL_ACTIVITY
+        One of: PRIVILEGE_ESCALATION, REMOTE_EXECUTION, PATH_TRAVERSAL,
+        BRUTE_FORCE, BEHAVIORAL_ANOMALY, NORMAL_ACTIVITY
     """
     sudo       = log_summary.get("sudo_attempts", 0)
     sensitive  = log_summary.get("sensitive_file_accesses", 0)
@@ -41,8 +62,10 @@ def classify_attack_type(log_summary: dict) -> str:
     failed     = log_summary.get("failed_logins", 0)
     priv_esc   = log_summary.get("privilege_escalations", 0)
 
-    # PRIVILEGE_ESCALATION: root shell spawn, service account sudo, or sudo + malicious signal
-    if priv_esc > 0 or (sudo >= 2 and (sensitive > 0 or suspicious > 0 or failed > 0)):
+    # PRIVILEGE_ESCALATION: explicit priv-esc event, sudo+sensitive-file access
+    # (matches risk_engine.py's own EXTREME/70 "shadow+sudo" override), or
+    # repeated sudo combined with another malicious indicator.
+    if priv_esc > 0 or (sudo >= 1 and sensitive > 0) or (sudo >= 2 and (suspicious > 0 or failed > 0)):
         return "PRIVILEGE_ESCALATION"
 
     # Safe sudo only (no malicious indicators and no privilege escalation) → normal admin activity
@@ -53,10 +76,18 @@ def classify_attack_type(log_summary: dict) -> str:
         return "REMOTE_EXECUTION"
 
     if sensitive >= 1:
-        return "DATA_EXFILTRATION"
+        return "PATH_TRAVERSAL"
 
     if failed >= 2:
         return "BRUTE_FORCE"
+
+    # No recognizable log signature at all. If risk_engine still flagged this
+    # event as non-NORMAL (e.g. a pure volume/ML anomaly with no log evidence
+    # — see risk_engine.py's clean-baseline-guard ML override), say so
+    # honestly instead of silently reporting "NORMAL_ACTIVITY" for an event
+    # the system itself just escalated.
+    if status != "NORMAL":
+        return "BEHAVIORAL_ANOMALY"
 
     return "NORMAL_ACTIVITY"
 
@@ -84,6 +115,11 @@ def process_event(ip: str, device: str, request_count: int,
             "graph_stored": False,
             "components":   {},
             "override_triggered": True,
+            # Short-circuit has no log_summary to classify from (the original
+            # signature, if any, was determined on an earlier call) — without
+            # this, callers defaulting attack_type via .get(..., "NORMAL_ACTIVITY")
+            # would report EXTREME_RISK alongside "normal activity".
+            "attack_type":  "BEHAVIORAL_ANOMALY",
             "response":     {
                 "actions_taken":          ["blocked"],
                 "blocked":                True,
@@ -104,9 +140,11 @@ def process_event(ip: str, device: str, request_count: int,
     override = result.get("override_triggered", False)
     ts_str   = timestamp.isoformat()
 
-    # Derive attack type from log features — pure feature-based, no score influence
+    # Derive attack type from log features — signature-based branches are
+    # pure feature-based (no score influence); status is only consulted for
+    # the BEHAVIORAL_ANOMALY fallback when there is no log signature at all.
     log_summary = get_ip_log_summary(ip)
-    attack_type = classify_attack_type(log_summary)
+    attack_type = classify_attack_type(log_summary, status)
 
     # Automated response — status is single source of truth
     response = execute_response(ip, score, status, comps)

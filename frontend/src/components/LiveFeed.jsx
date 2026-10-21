@@ -14,6 +14,8 @@ const ATTACK_BADGES = {
   REMOTE_EXECUTION:     { label: '🟠 REMOTE_EXEC', cls: 'bg-orange-950 text-orange-400 border-orange-800' },
   PATH_TRAVERSAL:       { label: '🟠 PATH_TRAVERSAL', cls: 'bg-amber-950 text-amber-400 border-amber-800' },
   BRUTE_FORCE:          { label: '🟡 BRUTE_FORCE', cls: 'bg-yellow-950 text-yellow-400 border-yellow-800' },
+  // Not a confirmed attack category — flagged anomalous with no log signature.
+  BEHAVIORAL_ANOMALY:   { label: '🔵 ANOMALY',      cls: 'bg-cyan-950 text-cyan-400 border-cyan-800' },
 }
 
 function ActionBadge({ action }) {

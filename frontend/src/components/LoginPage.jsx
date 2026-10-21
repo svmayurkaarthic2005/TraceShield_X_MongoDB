@@ -16,7 +16,12 @@ export default function LoginPage({ onSuccess }) {
       setToken(r.data.token)
       onSuccess()
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed — is the server running?')
+      const data = err.response?.data
+      let msg = data?.error || 'Login failed — is the server running?'
+      if (data?.retryAfterSeconds) {
+        msg += ` (try again in ${Math.ceil(data.retryAfterSeconds / 60)} min)`
+      }
+      setError(msg)
     } finally {
       setLoading(false)
     }

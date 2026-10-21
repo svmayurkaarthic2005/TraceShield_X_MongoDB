@@ -26,10 +26,21 @@ _RE_IP = re.compile(r'\b(?:\d{1,3}\.){3}\d{1,3}\b')
 
 # ── Username extraction ───────────────────────────────────────────────────────
 
-_RE_USER = re.compile(
-    r'(?:for|user|USER=|acct=|by)\s+([a-zA-Z0-9_\-\.]+)',
-    re.IGNORECASE,
-)
+# Username extraction is tried as several specific patterns, in priority
+# order, rather than one catch-all alternation — the old single regex
+# required whitespace after EVERY keyword including "USER=", so it silently
+# never matched this repo's own "USER=root" sudo format (no space before the
+# value), and its "for" branch could win over "user" at the same position,
+# extracting the literal word "user" out of "session closed for user NAME"
+# instead of NAME.
+_RE_USER_KV      = re.compile(r'(?:USER|acct)=\"?([a-zA-Z0-9_\-\.]+)\"?')
+_RE_USER_INVALID = re.compile(r'(?:invalid|illegal)\s+user\s+([a-zA-Z0-9_\-\.]+)', re.IGNORECASE)
+_RE_USER_FOR_USER = re.compile(r'\bfor\s+user\s+([a-zA-Z0-9_\-\.]+)', re.IGNORECASE)
+_RE_USER_FOR_FROM = re.compile(r'\bfor\s+([a-zA-Z0-9_\-\.]+)\s+from\b', re.IGNORECASE)
+_RE_USER_BY      = re.compile(r'\bby\s+([a-zA-Z0-9_\-\.]+)\b', re.IGNORECASE)
+_RE_USER_GENERIC = re.compile(r'\buser\s+([a-zA-Z0-9_\-\.]+)', re.IGNORECASE)
+
+_USERNAME_STOPWORDS = {'from', 'by', 'for', 'user', 'the', 'a', 'an'}
 
 # ── Timestamp extraction (syslog / ISO / audit formats) ──────────────────────
 
@@ -201,7 +212,11 @@ _RE_RECON = re.compile(
 # ── Sudo actor extraction (username before the colon in sudo lines) ───────────
 
 _RE_SUDO_ACTOR = re.compile(
-    r'sudo\s*:\s*([a-zA-Z0-9_\-\.]+)\s*:',
+    # sudo[12345]: actor : ... — the actual standard syslog format (PID in
+    # brackets). The previous pattern required "sudo" to be followed
+    # immediately by whitespace/colon, so it never matched "sudo[PID]:" at
+    # all — a real pre-existing bug, not just the USER= spacing issue.
+    r'sudo(?:\[\d+\])?\s*:\s*([a-zA-Z0-9_\-\.]+)\s*:',
     re.IGNORECASE,
 )
 
@@ -242,13 +257,34 @@ def _extract_timestamp(line: str) -> Optional[str]:
 
 
 def _extract_username(line: str) -> Optional[str]:
-    """Try to extract a username from a log line."""
-    m = _RE_USER.search(line)
+    """
+    Try to extract a username from a log line.
+
+    Checked in priority order: USER=/acct= key-value form first (most
+    reliable, matches against the full line so it still works when the value
+    precedes a COMMAND= argument on the same line), then the looser
+    "invalid user X" / "for user X" / "for X from" / "by X" / "user X"
+    patterns — but only against the part of the line BEFORE any COMMAND=,
+    so a shell command's own arguments (e.g. "COMMAND=/bin/bash -c for_each")
+    are never mistaken for a username by those looser patterns.
+    """
+    m = _RE_USER_KV.search(line)
     if m:
-        candidate = m.group(1)
-        # Filter out common false positives
-        if candidate.lower() not in ('from', 'by', 'for', 'user', 'the', 'a', 'an'):
+        # The capture allows "." for dotted usernames (first.last), which
+        # also greedily swallows a sentence-ending period when the match
+        # runs to end-of-line — strip one trailing "." in that case.
+        candidate = m.group(1).rstrip(".")
+        if candidate and candidate.lower() not in _USERNAME_STOPWORDS:
             return candidate
+
+    head = line.split("COMMAND=", 1)[0]
+    for pattern in (_RE_USER_INVALID, _RE_USER_FOR_USER, _RE_USER_FOR_FROM,
+                   _RE_USER_BY, _RE_USER_GENERIC):
+        m = pattern.search(head)
+        if m:
+            candidate = m.group(1).rstrip(".")
+            if candidate and candidate.lower() not in _USERNAME_STOPWORDS:
+                return candidate
     return None
 
 
@@ -353,8 +389,14 @@ def aggregate_by_ip(events: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
             if len(a["evidence_lines"]) < 10:
                 a["evidence_lines"].append(ev["raw"])
 
-        if ev.get("username"):
-            a["usernames"].add(ev["username"])
+        # Prefer the acting actor (sudo_actor — who ran the command) over the
+        # USER= target (who it ran AS, usually "root") — matches the same
+        # precedent already used in aggregate_by_user() below. Without this,
+        # a sudo line's "usernames" entry would always show "root" instead of
+        # the real actor.
+        actor = ev.get("sudo_actor") or ev.get("username")
+        if actor:
+            a["usernames"].add(actor)
 
         ts = ev.get("log_timestamp")
         if ts:

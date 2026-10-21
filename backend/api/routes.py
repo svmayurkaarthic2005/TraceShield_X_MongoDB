@@ -623,6 +623,7 @@ def threat_scan(request: Request) -> Dict[str, Any]:
         logger.error("/threat-scan error: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/status")
 @router.get("/health")
 def health(request: Request) -> Dict[str, Any]:
     try:
@@ -648,16 +649,3 @@ def dataset_rows(request: Request) -> Dict[str, Any]:
         return {"rows": rows, "count": len(rows)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-def health(request: Request) -> Dict[str, Any]:
-    try:
-        return {"status": "ok", "neo4j": test_connection(),
-                "model_loaded": request.app.state.model is not None}
-    except Exception:
-        return {"status": "ok", "neo4j": False, "model_loaded": False}
-
-
-@router.get("/dataset/logs")
-def dataset_logs() -> Dict[str, Any]:
-    """Return all raw log lines from the intrusion dataset."""
-    lines = get_all_log_lines()
-    return {"lines": lines, "count": len(lines)}

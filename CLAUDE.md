@@ -313,6 +313,10 @@ AUTH_PASSWORD_HASH=<bcrypt hash>
 
 Generate the hash with `node server/scripts/hash-password.js <password>`. The frontend gates the whole app behind `frontend/src/components/LoginPage.jsx` (see `main.jsx`) and stores the JWT in `localStorage`; `services/api.js` attaches it to every request and reloads to the login screen on a 401 (except from the login call itself, so a wrong password shows an error instead of reloading).
 
+`AUTH_PASSWORD_HASH` is a **bootstrap value only** — it seeds `server/models/AuthState.js` (a singleton MongoDB document) on first run; from then on the DB document is the source of truth, since a running process can't durably rewrite its own `.env`. `POST /api/auth/change-password` (requires the current password, JWT-protected) updates that document. If MongoDB is unavailable, login falls back to checking `AUTH_PASSWORD_HASH` directly with no lockout. Plaintext `AUTH_PASSWORD` is no longer accepted anywhere.
+
+`/api/auth/login` is also hardened: a per-IP in-memory rate limit (10 attempts / 5 min), and a MongoDB-backed account lockout (5 consecutive failures → 15-minute lock, tracked on the `AuthState` document so it survives restarts). Every attempt — success or failure — is recorded in `server/models/LoginAudit.js`, readable via `GET /api/auth/audit` (JWT-protected, never stores the attempted password).
+
 **Known gap:** the `/ws` WebSocket proxy is unauthenticated — the Node `'upgrade'` event bypasses Express middleware entirely, so `requireAuth` never runs for it. Securing it would need a token passed in the connection query string and checked before the upgrade handshake; not implemented.
 
 ---

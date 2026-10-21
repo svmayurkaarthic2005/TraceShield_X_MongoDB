@@ -1,22 +1,29 @@
 """
 risk_engine.py — Adaptive weighted risk scoring with 4-tier classification.
 
-Weights:
-    ML score       → 30%
-    Temporal score → 20%
+Weights (see W_* constants below — this table must match them exactly):
+    ML score       → 20%
+    Temporal score → 15%
     Count score    → 20%
     Spike score    → 15%
     Trend score    → 10%
-    Log score      → 15%  (NEW — Linux system log signals)
+    Log score      → 20%
 
-Classification (single authoritative variable):
-    0–25   → NORMAL
-    25–40  → SUSPICIOUS
-    40–60  → HIGH_RISK
+Classification — the only authoritative definition is _classify() below:
+    0–20   → NORMAL
+    20–35  → SUSPICIOUS
+    35–60  → HIGH_RISK
     60–100 → EXTREME_RISK
 
+This weighted sum is then subject to a cascade of deterministic log-signal
+floor overrides (see compute_risk()) before classification — for any event
+with a recognized log signal (sudo, sensitive-file access, suspicious
+command, failed login, privilege escalation), these floors — not the
+weighted sum — usually determine the final tier. Treat this as a rule
+engine with an ML-weighted term, not as ML-driven detection.
+
 Spike override:
-    spike > 70 → floor final at 40 (HIGH_RISK minimum)
+    spike > 70  → floor final at 40 (HIGH_RISK minimum)
     spike >= 90 → floor final at 60 (EXTREME_RISK minimum)
 """
 
@@ -128,13 +135,9 @@ def compute_risk(ip: str, request_count: int, timestamp: datetime) -> dict:
     Compute adaptive weighted risk score with strict score-status consistency.
 
     Rule: status is ALWAYS derived from score — never assigned independently.
-    Overrides adjust the SCORE first, then classification follows.
-
-    Score ranges:
-        0–30   → NORMAL
-        30–70  → SUSPICIOUS
-        70–90  → HIGH_RISK
-        90–100 → EXTREME_RISK
+    Overrides adjust the SCORE first, then classification follows via
+    _classify() (0–20 NORMAL, 20–35 SUSPICIOUS, 35–60 HIGH_RISK, 60–100
+    EXTREME_RISK — see that function for the authoritative definition).
     """
     rec         = record_event(ip, request_count, timestamp)
     avg_count   = rec.avg_count()
@@ -155,6 +158,7 @@ def compute_risk(ip: str, request_count: int, timestamp: datetime) -> dict:
         sudo_attempts=log_data.get("sudo_attempts", 0),
         suspicious_commands=log_data.get("suspicious_commands", 0),
         sensitive_file_access=log_data.get("sensitive_file_accesses", 0),
+        trend_score=t_score_val,
     )
     t_score = _temporal_score(ip, request_count, timestamp)
     c_score = _count_score(request_count)
@@ -181,6 +185,49 @@ def compute_risk(ip: str, request_count: int, timestamp: datetime) -> dict:
     safe_sudo_only = (sudo > 0 and failed == 0 and susp_cmd == 0 and sens == 0 and priv_esc == 0)
 
     if no_threat_signals or safe_sudo_only:
+        if ml_score >= ML_ANOMALY_THRESHOLD:
+            # A genuine ML anomaly (behavioral/volume pattern) must not be
+            # silently erased just because no known attack signature was
+            # seen in the logs — that would defeat anomaly detection for
+            # exactly the "unknown attack, no signature" case it exists for.
+            # It is still capped below EXTREME_RISK: absent log evidence this
+            # is an unconfirmed behavioral anomaly, not a matched attack
+            # pattern, so it is not given the same ceiling as a confirmed
+            # signature match.
+            #
+            # Floor at 20 (SUSPICIOUS) mirrors the existing "ML override:
+            # anomalous ML must be at least SUSPICIOUS" rule used later in
+            # this same function for the non-clean-baseline path — the raw
+            # weighted sum alone is not enough here, since ML is only one of
+            # six weighted components (W_ML=0.20) and every other component
+            # is near-zero with no log signal, so the plain weighted sum
+            # would usually stay under 20 even when ml_score is high. Without
+            # this floor the earlier bug (suppression to NORMAL) is only
+            # half-fixed: override_triggered becomes True but status still
+            # comes back NORMAL.
+            final = round(min(max(final, 20.0), 59.0), 2)
+            status = _classify(final)
+            logger.warning(
+                "CLEAN BASELINE OVERRIDE | ip=%s no log signature but ml_score=%.1f "
+                "→ score=%.2f status=%s (not suppressed to NORMAL)",
+                ip, ml_score, final, status
+            )
+            return {
+                "risk_score":         final,
+                "status":             status,
+                "override_triggered": True,
+                "components": {
+                    "ml_score":       round(ml_score, 2),
+                    "temporal_score": round(t_score, 2),
+                    "count_score":    round(c_score, 2),
+                    "spike_score":    spike,
+                    "trend_score":    t_score_val,
+                    "log_score":      round(l_score, 2),
+                    "avg_previous":   round(avg_count, 2),
+                    "spike_ratio":    spike_ratio,
+                    "log_details":    log_data,
+                },
+            }
         # Cap final score at 20 — volume/ML variance alone cannot raise risk
         final = min(final, 20.0)
         final = round(max(final, 0.0), 2)

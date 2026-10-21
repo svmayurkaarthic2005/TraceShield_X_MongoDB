@@ -678,7 +678,7 @@ function IpRow({ row, rank, onCmdClick }) {
       {/* Triggered forensic commands, attack_type, and flags */}
       <div className="col-span-5 flex flex-wrap gap-1.5 items-center">
         {row.attack_type && row.attack_type !== 'NORMAL_ACTIVITY' && (() => {
-          const AT = { PRIVILEGE_ESCALATION: ['🔴','text-red-400','border-red-800/60','bg-red-950/40'], REMOTE_EXECUTION: ['🟠','text-orange-400','border-orange-800/60','bg-orange-950/40'], BRUTE_FORCE: ['🟡','text-yellow-400','border-yellow-800/60','bg-yellow-950/40'] }
+          const AT = { PRIVILEGE_ESCALATION: ['🔴','text-red-400','border-red-800/60','bg-red-950/40'], REMOTE_EXECUTION: ['🟠','text-orange-400','border-orange-800/60','bg-orange-950/40'], BRUTE_FORCE: ['🟡','text-yellow-400','border-yellow-800/60','bg-yellow-950/40'], BEHAVIORAL_ANOMALY: ['🔵','text-cyan-400','border-cyan-800/60','bg-cyan-950/40'] }
           const [icon, tc, bc, bg] = AT[row.attack_type] || []
           return icon ? <span className={`text-[9px] font-bold mono-text px-1.5 py-0.5 rounded border ${tc} ${bc} ${bg}`}>{icon} {row.attack_type.replace('_',' ')}</span> : null
         })()}
