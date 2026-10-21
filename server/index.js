@@ -19,6 +19,11 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || "http://localhost:5173")
   .filter(Boolean);
 
 const app = express();
+// Required for req.ip to reflect the real client address behind Render's
+// reverse proxy (and any other platform load balancer) — without this every
+// request appears to come from the proxy's own IP, making the login route's
+// per-IP rate limiter useless (one shared bucket for all clients).
+app.set("trust proxy", 1);
 app.use(
   cors({
     origin: (origin, cb) => {
