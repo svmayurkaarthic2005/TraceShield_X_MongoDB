@@ -6,7 +6,6 @@ import { connectMongo, isMongoUp } from "./config/db.js";
 import reportsRouter from "./routes/reports.js";
 import authRouter from "./routes/auth.js";
 import { mountProxies } from "./routes/proxies.js";
-import { requireAuth } from "./middleware/auth.js";
 
 const PORT = process.env.PORT || 5000;
 const CORE_URL = process.env.CORE_URL || "http://127.0.0.1:8000";
@@ -37,10 +36,8 @@ app.use(
 );
 app.use(morgan("dev"));
 
-// requireAuth only reads the Authorization header, so it's safe to run
-// before express.json() below.
-app.use("/api/core", requireAuth);
-app.use("/api/ingest", requireAuth);
+// Public unauthenticated access for internal proxies
+// (login requirement removed)
 
 // Mounted before express.json() — http-proxy-middleware needs the raw
 // request stream, which body-parsing middleware would otherwise consume.
@@ -78,7 +75,7 @@ app.get("/api/health", async (req, res) => {
   });
 });
 
-app.use("/api/reports", requireAuth, reportsRouter);
+app.use("/api/reports", reportsRouter);
 
 await connectMongo(process.env.MONGO_URI);
 

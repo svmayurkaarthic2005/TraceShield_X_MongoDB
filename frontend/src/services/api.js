@@ -33,14 +33,7 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    // Don't bounce the login form itself on a wrong-password 401.
-    if (err.response?.status === 401 && !err.config?.url?.includes('/api/auth/login')) {
-      clearToken()
-      window.dispatchEvent(new Event('ts:unauthorized'))
-    }
-    return Promise.reject(err)
-  }
+  (err) => Promise.reject(err)
 )
 
 export function core(path) {

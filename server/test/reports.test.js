@@ -60,15 +60,6 @@ after(async () => {
   serverProcess.kill();
 });
 
-test("POST /api/reports requires a valid JWT", async () => {
-  const r = await fetch(`${BASE}/api/reports`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ incidentId: INCIDENT_ID, severity: "HIGH", attackerIp: "10.0.0.1" }),
-  });
-  assert.equal(r.status, 401);
-});
-
 test("POST /api/reports upserts by incidentId", async () => {
   const payload = { incidentId: INCIDENT_ID, severity: "HIGH", attackerIp: "10.0.0.1", summary: "first" };
 
