@@ -37,8 +37,10 @@ app.use(
 );
 app.use(morgan("dev"));
 
-// Public unauthenticated access for internal proxies
-// (login requirement removed)
+// requireAuth only reads the Authorization header, so it's safe to run
+// before express.json() below.
+app.use("/api/core", requireAuth);
+app.use("/api/ingest", requireAuth);
 
 // Mounted before express.json() — http-proxy-middleware needs the raw
 // request stream, which body-parsing middleware would otherwise consume.
@@ -76,7 +78,7 @@ app.get("/api/health", async (req, res) => {
   });
 });
 
-app.use("/api/reports", reportsRouter);
+app.use("/api/reports", requireAuth, reportsRouter);
 
 await connectMongo(process.env.MONGO_URI);
 
