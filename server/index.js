@@ -60,9 +60,9 @@ async function pingJson(url, timeoutMs = 2000) {
 app.get("/api/health", async (req, res) => {
   const [core, ingestion] = await Promise.all([
     pingJson(`${CORE_URL}/api/health`),
-    // Ingestion has no dedicated /health route — its root ("/") is the
-    // closest existing liveness check, and Python files aren't touched here.
-    pingJson(`${INGEST_URL}/`),
+    // Ingestion exposes a dedicated /health route (added for external
+    // uptime monitors) at its root level, not under /api like Core.
+    pingJson(`${INGEST_URL}/health`),
   ]);
   const status = core.up ? await pingJson(`${CORE_URL}/api/status`) : { up: false };
 

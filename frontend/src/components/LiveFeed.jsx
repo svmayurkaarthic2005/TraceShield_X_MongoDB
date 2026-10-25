@@ -182,7 +182,7 @@ export default function LiveFeed({ events: externalEvents, onEvents, wsStatus = 
                     <span>logs <span className="text-yellow-400">{ev.log_score?.toFixed(1)}</span></span>
                   )}
                   {ev?.reason && ev.reason !== 'N/A' && (
-                    <span className="text-[#1E2D4A] truncate max-w-[240px]">{ev.reason}</span>
+                    <span className="text-[#1E2D4A] truncate max-w-[240px]" title={ev.reason}>{ev.reason}</span>
                   )}
                 </div>
               </div>

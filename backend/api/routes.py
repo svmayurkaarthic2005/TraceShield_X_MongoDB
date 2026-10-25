@@ -413,15 +413,26 @@ def graph_clear() -> Dict[str, str]:
 
 @router.get("/status")
 def status(request: Request) -> Dict[str, Any]:
-    try:
-        df = request.app.state.df
-        return {
-            "neo4j":        test_connection(),
-            "model_loaded": request.app.state.model is not None,
-            "dataset_rows": len(df),
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """
+    Service status: Neo4j reachability, whether the ML model is loaded, and
+    the training dataset's row count.
+
+    `app.state.df`/`app.state.model` are set together by the lifespan
+    handler before the app starts serving, so in normal operation they're
+    always present; getattr's default only matters for a request that
+    somehow lands before that (or after a startup failure), in which case
+    this reports the unavailable state instead of a 500. test_connection()
+    already catches its own Neo4j errors and returns False, so nothing here
+    needs a blanket except — an unrelated bug still raises and shows as a
+    real 500, rather than being silently swallowed.
+    """
+    df = getattr(request.app.state, "df", None)
+    model = getattr(request.app.state, "model", None)
+    return {
+        "neo4j":        test_connection(),
+        "model_loaded": model is not None,
+        "dataset_rows": len(df) if df is not None else None,
+    }
 
 
 @router.get("/analytics")
@@ -630,7 +641,6 @@ def threat_scan(request: Request) -> Dict[str, Any]:
         logger.error("/threat-scan error: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/status")
 @router.get("/health")
 def health(request: Request) -> Dict[str, Any]:
     try:
