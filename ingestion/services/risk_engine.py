@@ -25,6 +25,23 @@ engine with an ML-weighted term, not as ML-driven detection.
 Spike override:
     spike > 70  → floor final at 40 (HIGH_RISK minimum)
     spike >= 90 → floor final at 60 (EXTREME_RISK minimum)
+
+Weak vs. strong log evidence (see compute_risk()'s guard before the override
+cascade): an event reaches the override cascade — and therefore becomes
+eligible for the spike override above — only if it carries at least one
+STRONG signal:
+    suspicious_commands   >= 1
+    sensitive_file_access >= 1
+    privilege_escalations >= 1
+    failed_logins         >= 2
+These are the exact thresholds each signal's own floor below already fires
+at, so "strong" here means nothing more than "the system already considers
+one occurrence of this enough to act on." Anything weaker — zero signals,
+safe sudo-only activity, or a single incidental failed login (alone or with
+sudo) — is WEAK evidence and is capped by the ML_ANOMALY_THRESHOLD-gated
+baseline guard instead, the same as a clean event, regardless of how extreme
+the volume/spike is. This is what stops one unrelated failed password from
+letting a legitimate traffic burst's spike reach HIGH_RISK or EXTREME_RISK.
 """
 
 import logging
@@ -170,9 +187,12 @@ def compute_risk(ip: str, request_count: int, timestamp: datetime) -> dict:
 
     override_triggered = False
 
-    # ── Clean baseline guard ──────────────────────────────────────────────────
-    # If NO threat signals exist at all, cap score at 20 and force NORMAL.
-    # Volume alone (count, temporal, ML variance) must NOT trigger anomaly.
+    # ── Weak-signal baseline guard ─────────────────────────────────────────────
+    # If the event carries no STRONG log signal, cap score at 20 (or the
+    # ML-gated 20-59 band below) regardless of volume/spike. See module
+    # docstring for the full weak-vs-strong policy and why these specific
+    # thresholds (matching each signal's own floor further down) are the
+    # dividing line, not an arbitrary new cutoff.
     log_details = log_data
     failed   = log_details.get("failed_logins", 0)
     sudo     = log_details.get("sudo_attempts", 0)
@@ -180,11 +200,16 @@ def compute_risk(ip: str, request_count: int, timestamp: datetime) -> dict:
     sens     = log_details.get("sensitive_file_accesses", 0)
     priv_esc = log_details.get("privilege_escalations", 0)
 
-    no_threat_signals = (failed == 0 and sudo == 0 and susp_cmd == 0 and sens == 0 and priv_esc == 0)
-    # Safe sudo only (no malicious signals, no privilege escalation root shells) — treat as clean baseline
-    safe_sudo_only = (sudo > 0 and failed == 0 and susp_cmd == 0 and sens == 0 and priv_esc == 0)
+    # A single failed login (alone, or alongside sudo usage — e.g. one
+    # mistyped sudo password) is incidental, not corroborated attack
+    # evidence: it is weaker than every other signal type below, each of
+    # which already floors severity at its very first occurrence. Only
+    # REPEATED failed logins (>=2, matching the SUSPICIOUS floor later in
+    # this function) count as a strong signal on their own.
+    has_strong_signal = susp_cmd >= 1 or sens >= 1 or priv_esc >= 1 or failed >= 2
+    weak_evidence_only = not has_strong_signal
 
-    if no_threat_signals or safe_sudo_only:
+    if weak_evidence_only:
         if ml_score >= ML_ANOMALY_THRESHOLD:
             # A genuine ML anomaly (behavioral/volume pattern) must not be
             # silently erased just because no known attack signature was
@@ -208,9 +233,9 @@ def compute_risk(ip: str, request_count: int, timestamp: datetime) -> dict:
             final = round(min(max(final, 20.0), 59.0), 2)
             status = _classify(final)
             logger.warning(
-                "CLEAN BASELINE OVERRIDE | ip=%s no log signature but ml_score=%.1f "
-                "→ score=%.2f status=%s (not suppressed to NORMAL)",
-                ip, ml_score, final, status
+                "WEAK-EVIDENCE BASELINE OVERRIDE | ip=%s failed=%d sudo=%d (no strong "
+                "signal) but ml_score=%.1f → score=%.2f status=%s (not suppressed to NORMAL)",
+                ip, failed, sudo, ml_score, final, status
             )
             return {
                 "risk_score":         final,
@@ -228,13 +253,23 @@ def compute_risk(ip: str, request_count: int, timestamp: datetime) -> dict:
                     "log_details":    log_data,
                 },
             }
-        # Cap final score at 20 — volume/ML variance alone cannot raise risk
-        final = min(final, 20.0)
-        final = round(max(final, 0.0), 2)
-        status = "NORMAL"
+        # Cap final score below 20 — volume/ML variance alone (including a
+        # large spike/count contribution to the raw weighted sum before this
+        # cap) cannot raise risk, and neither can a single incidental failed
+        # login. The ceiling is 19.99, not 20.0: _classify()'s score>=20
+        # check resolves exactly 20.0 to SUSPICIOUS, and any real volume
+        # burst's pre-cap weighted sum (spike+count alone) all but always
+        # reaches >=20 — capping at 20.0 would therefore hand _classify() a
+        # value it calls SUSPICIOUS for virtually every clean, protected
+        # burst. Capping at 19.99 instead keeps the result inside the NORMAL
+        # band by construction, so status can be derived from the score here
+        # exactly like every other return path, with no hardcoded exception.
+        final = round(max(min(final, 19.99), 0.0), 2)
+        status = _classify(final)
         logger.info(
-            "CLEAN BASELINE | ip=%s no threat signals → capped score=%.2f status=NORMAL",
-            ip, final
+            "WEAK-EVIDENCE BASELINE | ip=%s failed=%d sudo=%d (no strong signal) "
+            "→ capped score=%.2f status=%s",
+            ip, failed, sudo, final, status
         )
         return {
             "risk_score":         final,

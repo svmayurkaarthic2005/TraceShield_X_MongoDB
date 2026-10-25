@@ -140,13 +140,15 @@ def predict_anomaly(
         X_scaled = scaler.transform(row)
 
         prediction = model.predict(X_scaled)          # 1 = normal, -1 = anomaly
-        raw_score = model.decision_function(X_scaled)  # higher = more normal
+        raw_score = model.decision_function(X_scaled)[0]  # higher = more normal
 
-        # Normalize to [0, 1] where 1 = most anomalous
-        normalized_score = 1 - (raw_score - raw_score.min()) / (
-            raw_score.max() - raw_score.min() + 1e-8
-        )
-        normalized_score = float(np.clip(normalized_score[0], 0.0, 1.0))
+        # Normalize to [0, 1] where 1 = most anomalous, using IsolationForest's
+        # typical decision_function range [-0.5, 0.5] (same fixed-range mapping
+        # ingestion/services/ml_training.py uses for the same model type).
+        # Min-max normalizing against this single prediction (the prior
+        # approach) is meaningless for a batch of one — min() == max() always,
+        # so the result was a constant 1.0 regardless of the actual score.
+        normalized_score = float(np.clip((0.5 - raw_score) / 1.0, 0.0, 1.0))
 
         return {
             "anomaly": bool(prediction[0] == -1),

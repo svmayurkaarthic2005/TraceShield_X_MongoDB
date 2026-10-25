@@ -197,7 +197,6 @@ TraceShield-X-main/
 │   │   ├── anomaly_detector.py # Live anomaly detector
 │   │   ├── ip_memory.py        # Sliding window history per IP (20 events)
 │   │   ├── linux_log_parser.py # Linux auth log parsing (sudo, auth failures, sessions)
-│   │   ├── ml_engine.py        # ML feature extraction (9 features)
 │   │   ├── ml_model.py         # Isolation Forest + LOF ensemble scorer
 │   │   ├── ml_training.py      # ML training pipeline for streaming anomalies
 │   │   ├── response_engine.py  # 4-tier automated mitigation actions (flag/honeypot/block)

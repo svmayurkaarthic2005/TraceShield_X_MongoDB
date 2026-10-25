@@ -57,7 +57,6 @@ _PRIVILEGE_ESC = re.compile(
     r'COMMAND=\S*(?:/bin/bash|/bin/sh|/usr/bin/bash|/usr/bin/sh)'
     r'|session opened for user root by (?!root)'
     r'|sudo:\s*(?:www-data|nobody|apache|nginx)\s*:'
-    r'|incorrect password'
     r'|pkexec|su:\s*FAILED',
     re.IGNORECASE
 )
