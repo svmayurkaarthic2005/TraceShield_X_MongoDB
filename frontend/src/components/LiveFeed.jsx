@@ -145,27 +145,32 @@ export default function LiveFeed({ events: externalEvents, onEvents, wsStatus = 
             return (
               <div key={i}
                 className={`rounded-lg border px-3 py-2 text-xs mono-text ${c.bg} ${c.border}`}>
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-wrap">
                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.dot}`} />
-                    <span className={`font-bold ${c.text}`}>{ev.status}</span>
+                    <span className={`font-bold flex-shrink-0 ${c.text}`}>{ev.status}</span>
                     {ev.source === 'dataset' && (
-                      <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/20 uppercase mono-text">
+                      <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/20 uppercase mono-text flex-shrink-0">
                         📁 {ev.filename || 'dataset'}
                       </span>
                     )}
                     {attackBadge && (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${attackBadge.cls}`}>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 ${attackBadge.cls}`} title="Detected attack type">
                         {attackBadge.label}
                       </span>
                     )}
-                    <span className="text-[#94A3B8]">{ev.ip}</span>
-                    <span className="text-[#1E2D4A]">→</span>
-                    <span className="text-[#E2E8F0]">{ev.device}</span>
+                    <span className="text-[#94A3B8] flex-shrink-0">{ev.ip}</span>
+                    <span className="text-[#1E2D4A] flex-shrink-0">→</span>
+                    <span className="text-[#E2E8F0] truncate max-w-[160px]" title={ev.device}>{ev.device}</span>
+                    {ev.scenario && (
+                      <span className="text-[#94A3B8] text-[10px] italic truncate max-w-[140px]" title={`Scenario: ${ev.scenario}`}>
+                        (scenario: {ev.scenario})
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap flex-shrink-0 justify-end">
                     {actions.map((a, j) => <ActionBadge key={j} action={a} />)}
-                    <span className="text-[#94A3B8] text-[10px]">
+                    <span className="text-[#94A3B8] text-[10px] whitespace-nowrap">
                       {new Date(ev.timestamp).toLocaleTimeString()}
                     </span>
                   </div>

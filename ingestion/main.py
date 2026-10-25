@@ -98,6 +98,12 @@ def root():
     return {"status": "online", "service": "TraceShield Ingestion API v2.0"}
 
 
+@app.get("/health")
+def health():
+    """Lightweight uptime-monitor target (e.g. cron-job.org keep-alive pings)."""
+    return {"status": "ok"}
+
+
 @app.post("/ingest", response_model=IngestResponse)
 async def ingest(payload: IngestPayload) -> IngestResponse:
     """
@@ -124,11 +130,13 @@ async def ingest(payload: IngestPayload) -> IngestResponse:
             components=result["components"],
             response=result["response"],
             attack_type=result.get("attack_type", "NORMAL_ACTIVITY"),
+            scenario=payload.scenario,
         )
         # Broadcast to WebSocket clients (non-blocking)
         ws_payload = {
             "ip":           payload.ip,
             "device":       payload.device,
+            "scenario":     payload.scenario,
             "request_count": payload.request_count,
             "status":       result["status"],
             "risk_score":   result["risk_score"],

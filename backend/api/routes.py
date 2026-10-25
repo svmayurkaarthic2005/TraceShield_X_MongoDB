@@ -141,7 +141,12 @@ def _delegate_to_ingest(row: Dict[str, Any]) -> Dict[str, Any]:
     ip     = row.get("src_ip") or (
         f"10.{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}"
     )
-    device = row.get("name") or row.get("protocol_type", "UNKNOWN")
+    # `name` (when present) is a dataset/log-derived scenario description (e.g.
+    # "Brute Force", from simulation._describe_group) — not a device identifier.
+    # Keep it separate from `device` so the UI never presents a scenario label
+    # as physical device/protocol info.
+    device   = row.get("protocol_type", "UNKNOWN")
+    scenario = row.get("name")
 
     _seed_log_signals(ip, row.get("log_lines") or [])
 
@@ -166,8 +171,10 @@ def _delegate_to_ingest(row: Dict[str, Any]) -> Dict[str, Any]:
     )
 
     payload = {"ip": ip, "device": device, "request_count": request_count}
-    logger.info("Delegating to ingestion service: ip=%s, device=%s, count=%d",
-                ip, device, request_count)
+    if scenario:
+        payload["scenario"] = scenario
+    logger.info("Delegating to ingestion service: ip=%s, device=%s, scenario=%s, count=%d",
+                ip, device, scenario, request_count)
 
     try:
         resp = httpx.post(INGEST_URL, json=payload, timeout=10.0)

@@ -1,6 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import api, { ingest } from '../services/api';
 import SimulatedBadge, { SimulatedFrame } from './SimulatedBadge';
+
+// Shared by every modal in this file: closes on Escape, and locks background
+// scroll while open. Each effect captures body.style.overflow as it actually
+// is when the modal opens (not a hardcoded ''), and restores exactly that on
+// cleanup — so if two modals were ever open at once, closing the inner one
+// restores "hidden" (what the outer modal set) instead of unlocking the page.
+function useModalEscapeAndScrollLock(isOpen, onClose) {
+  useEffect(() => {
+    if (!isOpen) return
+    const onKeyDown = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKeyDown)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [isOpen, onClose])
+}
 
 function PulseGraph({ data, threshold = 75 }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -161,6 +180,9 @@ export default function AnalyticsPage({ lastResult, liveEvents = [] }) {
   const [datasetRows, setDatasetRows] = useState([])
   const [ipTableSimulated, setIpTableSimulated] = useState(false)
 
+  const closeCmdModal = useCallback(() => setSelectedCmd(null), [])
+  useModalEscapeAndScrollLock(!!selectedCmd, closeCmdModal)
+
   // Seed from events the ingestion service has actually scored. The dataset
   // rows carry no source IP, so they cannot populate a per-IP table.
   useEffect(() => {
@@ -193,7 +215,7 @@ export default function AnalyticsPage({ lastResult, liveEvents = [] }) {
             level:         scoreLevel(score),
             triggered,
             usedCmds:      [],
-            actor:         e.device || 'unknown',
+            actor:         e.scenario ? `Scenario: ${e.scenario}` : (e.device || 'unknown'),
             name:          e.attack_type || 'Event',
             rawLog:        e.reason || '',
           })
@@ -278,6 +300,7 @@ export default function AnalyticsPage({ lastResult, liveEvents = [] }) {
         usedCmds:     [],
         attack_type:  latest.attack_type || 'NORMAL_ACTIVITY',
         device:       latest.device || '',
+        actor:        latest.scenario ? `Scenario: ${latest.scenario}` : (latest.device || 'unknown'),
       }
       setIpTable(prev => {
         const filtered = prev.filter(r => r.ip !== latest.ip)
@@ -455,7 +478,7 @@ export default function AnalyticsPage({ lastResult, liveEvents = [] }) {
       </div>
 
       {/* Command Dictionary Modal */}
-      {selectedCmd && <CmdModal cmd={selectedCmd} onClose={() => setSelectedCmd(null)} />}
+      {selectedCmd && <CmdModal cmd={selectedCmd} onClose={closeCmdModal} />}
     </div>
   );
 }
@@ -562,23 +585,23 @@ function CmdModal({ cmd, onClose }) {
       <div className="absolute inset-0 bg-[#070B14]/80 backdrop-blur-sm" />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg bg-[#0D1323] border rounded-xl shadow-2xl overflow-hidden animate-fadeIn"
+      <div className="relative w-full max-w-lg max-h-[85vh] bg-[#0D1323] border rounded-xl shadow-2xl overflow-hidden animate-fadeIn flex flex-col"
         style={{ borderColor: color + '44', boxShadow: `0 0 40px ${color}18` }}
         onClick={e => e.stopPropagation()}>
 
         {/* Top accent bar */}
-        <div className="h-1 w-full" style={{ background: `linear-gradient(to right, ${color}, transparent)` }} />
+        <div className="h-1 w-full flex-shrink-0" style={{ background: `linear-gradient(to right, ${color}, transparent)` }} />
 
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-[#1E2D4A]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center border"
+        <div className="flex items-start justify-between p-6 border-b border-[#1E2D4A] flex-shrink-0 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center border flex-shrink-0"
               style={{ borderColor: color + '44', backgroundColor: color + '10' }}>
               <i className="ph ph-terminal-window text-xl" style={{ color }} />
             </div>
-            <div>
-              <code className="text-lg font-bold mono-text" style={{ color }}>{cmd.cmd}</code>
-              <div className="flex items-center gap-2 mt-0.5">
+            <div className="min-w-0">
+              <code className="text-lg font-bold mono-text break-all" style={{ color }}>{cmd.cmd}</code>
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <span className="text-[9px] font-bold mono-text px-2 py-0.5 rounded border"
                   style={{ color, borderColor: color + '44', backgroundColor: color + '10' }}>
                   {cmd.severity}
@@ -589,19 +612,19 @@ function CmdModal({ cmd, onClose }) {
             </div>
           </div>
           <button onClick={onClose}
-            className="text-[#94A3B8] hover:text-white transition-colors p-1">
+            className="text-[#94A3B8] hover:text-white transition-colors p-1 flex-shrink-0">
             <i className="ph ph-x text-lg" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 overflow-y-auto min-h-0">
           {/* What it does */}
           <div>
             <div className="text-[9px] font-bold text-[#94A3B8] mono-text uppercase tracking-widest mb-2 flex items-center gap-2">
               <i className="ph ph-info text-[#00F0FF]" /> What it does
             </div>
-            <p className="text-sm text-[#E2E8F0] leading-relaxed">{cmd.desc}</p>
+            <p className="text-sm text-[#E2E8F0] leading-relaxed break-words">{cmd.desc}</p>
           </div>
 
           {/* Example usage */}
@@ -610,8 +633,8 @@ function CmdModal({ cmd, onClose }) {
               <div className="text-[9px] font-bold text-[#94A3B8] mono-text uppercase tracking-widest mb-2 flex items-center gap-2">
                 <i className="ph ph-code text-[#B026FF]" /> Example Usage
               </div>
-              <div className="bg-[#070B14] border border-[#1E2D4A] rounded-lg px-4 py-3">
-                <code className="text-[11px] text-[#B026FF] mono-text">{dict.example}</code>
+              <div className="bg-[#070B14] border border-[#1E2D4A] rounded-lg px-4 py-3 overflow-x-auto">
+                <code className="text-[11px] text-[#B026FF] mono-text break-all">{dict.example}</code>
               </div>
             </div>
           )}
@@ -624,14 +647,14 @@ function CmdModal({ cmd, onClose }) {
               </div>
               <div className="flex items-center gap-3 bg-[#39FF14]/5 border border-[#39FF14]/20 rounded-lg px-4 py-3">
                 <i className="ph ph-check-circle text-[#39FF14] text-lg flex-shrink-0" />
-                <span className="text-sm text-[#E2E8F0]">{dict.mitigation}</span>
+                <span className="text-sm text-[#E2E8F0] break-words">{dict.mitigation}</span>
               </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-[#1E2D4A] bg-[#070B14]/40 flex items-center justify-between">
+        <div className="px-6 py-3 border-t border-[#1E2D4A] bg-[#070B14]/40 flex items-center justify-between flex-shrink-0">
           <span className="text-[9px] text-[#94A3B8] mono-text uppercase tracking-widest">TraceShield_X · Forensic Command Dictionary</span>
           <button onClick={onClose}
             className="text-[10px] font-bold mono-text px-4 py-1.5 rounded border transition-all hover:bg-[#1E2D4A]"
@@ -655,8 +678,8 @@ function IpRow({ row, rank, onCmdClick }) {
       <div className="col-span-2 flex items-center gap-2">
         <span className="text-[9px] text-[#1E2D4A] mono-text w-4 text-right flex-shrink-0">{rank}</span>
         <div className="min-w-0">
-          <div className="text-[11px] text-white mono-text font-bold truncate">{row.ip}</div>
-          <div className="text-[9px] text-[#94A3B8] mono-text truncate">{row.actor}</div>
+          <div className="text-[11px] text-white mono-text font-bold truncate" title={row.ip}>{row.ip}</div>
+          <div className="text-[9px] text-[#94A3B8] mono-text truncate" title={row.actor}>{row.actor}</div>
         </div>
       </div>
       {/* Requests */}
@@ -868,6 +891,17 @@ function Layer3Panel({ events = [] }) {
   const [lastTransition, setLastTransition] = useState(null);
   const [paused, setPaused] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
+  // Captures whether the feed was already paused the moment the Node-Detail
+  // modal opened, so closing it restores that state instead of always
+  // resuming — a ref (not state) because it's only ever read inside the
+  // close handler, never needs to trigger a re-render.
+  const pausedBeforeModalRef = useRef(false);
+
+  const closeNodeModal = useCallback(() => {
+    setSelectedNode(null);
+    setPaused(pausedBeforeModalRef.current);
+  }, []);
+  useModalEscapeAndScrollLock(!!selectedNode, closeNodeModal);
 
   // Build the chain from real events, oldest → newest
   useEffect(() => {
@@ -990,6 +1024,7 @@ function Layer3Panel({ events = [] }) {
                   onClick={() => {
                     const prevNode = nodes[i - 1] || null;
                     const isUnusual = prevNode ? isUnusualTransition(prevNode, node) : false;
+                    pausedBeforeModalRef.current = paused;
                     setSelectedNode({ ...node, index: i, prevNode, isUnusualEdge: isUnusual });
                     setPaused(true);
                   }}>
@@ -1087,17 +1122,17 @@ function Layer3Panel({ events = [] }) {
 
     {/* Node detail modal */}
     {selectedNode && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => { setSelectedNode(null); setPaused(false); }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={closeNodeModal}>
           <div className="absolute inset-0 bg-[#070B14]/80 backdrop-blur-sm" />
-          <div className="relative w-full max-w-md bg-[#0D1323] border rounded-xl shadow-2xl overflow-hidden animate-fadeIn"
+          <div className="relative w-full max-w-md max-h-[85vh] bg-[#0D1323] border rounded-xl shadow-2xl overflow-hidden animate-fadeIn flex flex-col"
             style={{ borderColor: selectedNode.color + '55', boxShadow: `0 0 40px ${selectedNode.color}18` }}
             onClick={e => e.stopPropagation()}>
 
             {/* Accent bar */}
-            <div className="h-1 w-full" style={{ background: `linear-gradient(to right, ${selectedNode.color}, transparent)` }} />
+            <div className="h-1 w-full flex-shrink-0" style={{ background: `linear-gradient(to right, ${selectedNode.color}, transparent)` }} />
 
             {/* Header */}
-            <div className="flex items-center gap-3 p-5 border-b border-[#1E2D4A]">
+            <div className="flex items-center gap-3 p-5 border-b border-[#1E2D4A] flex-shrink-0">
               <div className="relative flex items-center justify-center flex-shrink-0">
                 <EventShape shape={selectedNode.shape} color={selectedNode.color} size={48} />
                 <span className="absolute text-[8px] font-black mono-text"
@@ -1119,13 +1154,13 @@ function Layer3Panel({ events = [] }) {
                   {selectedNode.type} · {selectedNode.shape}
                 </span>
               </div>
-              <button onClick={() => { setSelectedNode(null); setPaused(false); }} className="text-[#94A3B8] hover:text-white transition-colors p-1 flex-shrink-0">
+              <button onClick={closeNodeModal} className="text-[#94A3B8] hover:text-white transition-colors p-1 flex-shrink-0">
                 <i className="ph ph-x text-lg" />
               </button>
             </div>
 
             {/* Log line */}
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto min-h-0">
               <div>
                 <div className="text-[9px] font-bold text-[#94A3B8] mono-text uppercase tracking-widest mb-2 flex items-center gap-2">
                   <i className="ph ph-terminal-window text-[#B026FF]" /> Raw Log Entry
@@ -1172,9 +1207,9 @@ function Layer3Panel({ events = [] }) {
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3 border-t border-[#1E2D4A] bg-[#070B14]/40 flex justify-between items-center">
+            <div className="px-5 py-3 border-t border-[#1E2D4A] bg-[#070B14]/40 flex justify-between items-center flex-shrink-0">
               <span className="text-[9px] text-[#94A3B8] mono-text uppercase tracking-widest">TraceShield_X · Event Log Inspector</span>
-              <button onClick={() => { setSelectedNode(null); setPaused(false); }}
+              <button onClick={closeNodeModal}
                 className="text-[10px] font-bold mono-text px-4 py-1.5 rounded border transition-all hover:bg-[#1E2D4A]"
                 style={{ color: selectedNode.color, borderColor: selectedNode.color + '44' }}>
                 CLOSE

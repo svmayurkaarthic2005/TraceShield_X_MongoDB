@@ -1,6 +1,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import api, { core } from '../services/api';
+import { escapeHtml as esc } from '../utils/htmlEscape';
+
+// generateHtmlReport() builds the forensic report by string-concatenating raw
+// HTML (so it can be downloaded as a standalone file) instead of going through
+// React's auto-escaping. Every dynamic value it interpolates — log evidence,
+// descriptions, IPs, filenames, usernames — can originate from real attacker
+// log lines, so each one must be escaped (via `esc`, see src/utils/htmlEscape.js)
+// before interpolation, or a crafted log line (e.g. containing
+// "<img src=x onerror=...>") would execute as script the moment the
+// downloaded report is opened in a browser.
 
 const SEVERITY_META = {
   CRITICAL: { color: '#FF003C', bg: '#FF003C15', border: '#FF003C44', label: 'CRITICAL' },
@@ -62,10 +72,10 @@ function generateHtmlReport(d) {
   const evRows = (d.events || []).map((e, i) => {
     const bg = i % 2 === 0 ? '#f9fafb' : '#fff'
     return '<tr style="background:' + bg + '">' +
-      '<td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:11px;white-space:nowrap">' + (e.time||'—') + '</td>' +
-      '<td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:11px">' + (e.source||'—') + '</td>' +
-      '<td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-size:12px">' + (e.description||'—') + '</td>' +
-      '<td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:10px;color:#6b7280;word-break:break-all">' + (e.evidence||'—') + '</td>' +
+      '<td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:11px;white-space:nowrap">' + esc(e.time||'—') + '</td>' +
+      '<td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:11px">' + esc(e.source||'—') + '</td>' +
+      '<td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-size:12px">' + esc(e.description||'—') + '</td>' +
+      '<td style="padding:9px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:10px;color:#6b7280;word-break:break-all">' + esc(e.evidence||'—') + '</td>' +
       '</tr>'
   }).join('');
 
@@ -77,32 +87,32 @@ function generateHtmlReport(d) {
       Object.entries(d.attackCounts).map(([type, count]) => {
         const c = ATTACK_COLORS[type] || '#374151'
         return '<div style="background:' + c + '15;border:1px solid ' + c + '44;border-radius:6px;padding:12px 20px;text-align:center">' +
-          '<div style="font-size:22px;font-weight:800;color:' + c + ';font-family:monospace">' + count + '</div>' +
-          '<div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;font-family:monospace;margin-top:2px">' + type.replace(/_/g,' ') + '</div></div>'
+          '<div style="font-size:22px;font-weight:800;color:' + c + ';font-family:monospace">' + esc(count) + '</div>' +
+          '<div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;font-family:monospace;margin-top:2px">' + esc(type.replace(/_/g,' ')) + '</div></div>'
       }).join('') +
       '</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">' +
       [['EXTREME_RISK','#dc2626'],['HIGH_RISK','#ea580c'],['SUSPICIOUS','#ca8a04'],['NORMAL','#16a34a']].map(([k,c]) =>
         '<div style="background:' + c + '10;border:1px solid ' + c + '30;border-radius:6px;padding:10px;text-align:center">' +
-        '<div style="font-size:18px;font-weight:700;color:' + c + ';font-family:monospace">' + ((d.statusCounts||{})[k]||0) + '</div>' +
-        '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-family:monospace">' + k.replace(/_/g,' ') + '</div></div>'
+        '<div style="font-size:18px;font-weight:700;color:' + c + ';font-family:monospace">' + esc((d.statusCounts||{})[k]||0) + '</div>' +
+        '<div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-family:monospace">' + esc(k.replace(/_/g,' ')) + '</div></div>'
       ).join('') +
       '</div></div>'
     : ''
 
   // All results table
   const resultsTable = d.allResults && d.allResults.length > 0
-    ? '<div class="sec"><div class="st">All Detected IPs (' + d.allResults.length + ')</div>' +
+    ? '<div class="sec"><div class="st">All Detected IPs (' + esc(d.allResults.length) + ')</div>' +
       '<table><thead><tr><th>IP Address</th><th>Status</th><th>Risk Score</th><th>Attack Type</th><th>Actions</th><th>Signals</th></tr></thead><tbody>' +
       d.allResults.map((r, i) => {
         const rc = { EXTREME_RISK:'#dc2626', HIGH_RISK:'#ea580c', SUSPICIOUS:'#ca8a04', NORMAL:'#16a34a' }[r.status] || '#6b7280'
         const bg = i % 2 === 0 ? '#f9fafb' : '#fff'
         return '<tr style="background:' + bg + '">' +
-          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:11px;font-weight:700">' + (r.ip||'—') + '</td>' +
-          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb"><span style="background:' + rc + '15;border:1px solid ' + rc + '44;color:' + rc + ';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;font-family:monospace">' + (r.status||'—') + '</span></td>' +
-          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:12px;font-weight:700;color:' + rc + '">' + (r.risk_score != null ? r.risk_score.toFixed(1) : '0.0') + '</td>' +
-          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:10px;color:#374151">' + ((r.attack_type||'NORMAL_ACTIVITY').replace(/_/g,' ')) + '</td>' +
-          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:10px;color:#6b7280">' + ((r.actions||[]).join(', ')||'—') + '</td>' +
-          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:10px;color:#6b7280">' + (r.reason||'—') + '</td>' +
+          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:11px;font-weight:700">' + esc(r.ip||'—') + '</td>' +
+          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb"><span style="background:' + rc + '15;border:1px solid ' + rc + '44;color:' + rc + ';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;font-family:monospace">' + esc(r.status||'—') + '</span></td>' +
+          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:12px;font-weight:700;color:' + rc + '">' + (r.risk_score != null ? esc(r.risk_score.toFixed(1)) : '0.0') + '</td>' +
+          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:10px;color:#374151">' + esc((r.attack_type||'NORMAL_ACTIVITY').replace(/_/g,' ')) + '</td>' +
+          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:10px;color:#6b7280">' + (esc((r.actions||[]).join(', ')) || '—') + '</td>' +
+          '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:10px;color:#6b7280">' + esc(r.reason||'—') + '</td>' +
           '</tr>'
       }).join('') +
       '</tbody></table></div>'
@@ -110,7 +120,7 @@ function generateHtmlReport(d) {
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/>
-<title>Forensic Report — ${d.incidentId}</title>
+<title>Forensic Report — ${esc(d.incidentId)}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#f3f4f6;color:#111827}
@@ -155,14 +165,14 @@ thead th{padding:9px 12px;text-align:left;font-size:10px;text-transform:uppercas
 <div class="hdr">
   <div class="hdr-top">
     <div class="logo">TRACE<span>SHIELD</span> <span style="font-size:12px;color:#64748b;font-weight:400">X · FORENSICS</span></div>
-    <div class="badge">${d.severity} SEVERITY</div>
+    <div class="badge">${esc(d.severity)} SEVERITY</div>
   </div>
   <div class="title">Forensic Incident Report</div>
-  <div class="sub">INCIDENT ID: ${d.incidentId} &nbsp;·&nbsp; AUTO-GENERATED: ${now}</div>
+  <div class="sub">INCIDENT ID: ${esc(d.incidentId)} &nbsp;·&nbsp; AUTO-GENERATED: ${esc(now)}</div>
   <div class="meta">
-    <div class="mi"><div class="ml">Date / Time</div><div class="mv">${d.incidentDate} ${d.incidentTime} UTC</div></div>
-    <div class="mi" style="padding-left:16px"><div class="ml">Analyst</div><div class="mv">${d.analystName}</div></div>
-    <div class="mi" style="padding-left:16px"><div class="ml">System Affected</div><div class="mv">${d.systemAffected}</div></div>
+    <div class="mi"><div class="ml">Date / Time</div><div class="mv">${esc(d.incidentDate)} ${esc(d.incidentTime)} UTC</div></div>
+    <div class="mi" style="padding-left:16px"><div class="ml">Analyst</div><div class="mv">${esc(d.analystName)}</div></div>
+    <div class="mi" style="padding-left:16px"><div class="ml">System Affected</div><div class="mv">${esc(d.systemAffected)}</div></div>
   </div>
 </div>
 <div class="body">
@@ -171,21 +181,21 @@ thead th{padding:9px 12px;text-align:left;font-size:10px;text-transform:uppercas
   <div class="sec">
     <div class="st">Risk Assessment</div>
     <div class="score-bar">
-      <div class="score-val">${d.riskScore}</div>
-      <div><div class="score-label">Risk Score / 100</div><div style="font-size:11px;color:#6b7280">Anomaly Score: ${d.anomalyScore} &nbsp;·&nbsp; Flags: ${(d.flags||[]).join(', ')||'None'}</div></div>
+      <div class="score-val">${esc(d.riskScore)}</div>
+      <div><div class="score-label">Risk Score / 100</div><div style="font-size:11px;color:#6b7280">Anomaly Score: ${esc(d.anomalyScore)} &nbsp;·&nbsp; Flags: ${esc((d.flags||[]).join(', '))||'None'}</div></div>
     </div>
   </div>
 
   <div class="sec">
     <div class="st">Attacker Identification</div>
     <div class="atk">
-      <div class="af"><label>IP Address</label><span>${d.attackerIp||'<i>not collected</i>'}</span></div>
-      <div class="af"><label>Username / Account</label><span>${d.attackerUsername||'<i>not collected</i>'}</span></div>
-      <div class="af"><label>First Seen</label><span>${d.firstSeen||'<i>not recorded</i>'}</span></div>
-      <div class="af"><label>Last Seen</label><span>${d.lastSeen||'<i>not recorded</i>'}</span></div>
-      <div class="af"><label>Observed Events</label><span>${d.observedEvents ?? '<i>not recorded</i>'}</span></div>
-      <div class="af"><label>Targeted Accounts</label><span>${d.targetedAccounts||'<i>not recorded</i>'}</span></div>
-      <div class="af" style="grid-column:span 2"><label>Detected Signals</label><span>${d.signalSummary||'<i>not recorded</i>'}</span></div>
+      <div class="af"><label>IP Address</label><span>${d.attackerIp ? esc(d.attackerIp) : '<i>not collected</i>'}</span></div>
+      <div class="af"><label>Username / Account</label><span>${d.attackerUsername ? esc(d.attackerUsername) : '<i>not collected</i>'}</span></div>
+      <div class="af"><label>First Seen</label><span>${d.firstSeen ? esc(d.firstSeen) : '<i>not recorded</i>'}</span></div>
+      <div class="af"><label>Last Seen</label><span>${d.lastSeen ? esc(d.lastSeen) : '<i>not recorded</i>'}</span></div>
+      <div class="af"><label>Observed Events</label><span>${d.observedEvents != null ? esc(d.observedEvents) : '<i>not recorded</i>'}</span></div>
+      <div class="af"><label>Targeted Accounts</label><span>${d.targetedAccounts ? esc(d.targetedAccounts) : '<i>not recorded</i>'}</span></div>
+      <div class="af" style="grid-column:span 2"><label>Detected Signals</label><span>${d.signalSummary ? esc(d.signalSummary) : '<i>not recorded</i>'}</span></div>
     </div>
   </div>
 
@@ -195,20 +205,20 @@ thead th{padding:9px 12px;text-align:left;font-size:10px;text-transform:uppercas
     <tbody>${evRows}</tbody></table>
   </div>
 
-  <div class="sec"><div class="st">Incident Summary</div><div class="box">${d.summary}</div></div>
+  <div class="sec"><div class="st">Incident Summary</div><div class="box">${esc(d.summary)}</div></div>
   ${attackBreakdown}
   ${resultsTable}
-  <div class="sec"><div class="st">Impact Assessment</div><div class="imp">${d.impact}</div></div>
-  <div class="sec"><div class="st">Recommendations & Remediation</div><div class="rec">${d.recommendations}</div></div>
+  <div class="sec"><div class="st">Impact Assessment</div><div class="imp">${esc(d.impact)}</div></div>
+  <div class="sec"><div class="st">Recommendations & Remediation</div><div class="rec">${esc(d.recommendations)}</div></div>
 
   <div class="sig">
-    <div><div style="height:44px"></div><div class="sl">Analyst: ${d.analystName}</div></div>
-    <div><div style="height:44px"></div><div class="sl">Date: ${d.incidentDate}</div></div>
+    <div><div style="height:44px"></div><div class="sl">Analyst: ${esc(d.analystName)}</div></div>
+    <div><div style="height:44px"></div><div class="sl">Date: ${esc(d.incidentDate)}</div></div>
   </div>
 </div>
 <div class="ftr">
   <div>TraceShield X Forensic Platform &nbsp;·&nbsp; Confidential — For Legal Use Only</div>
-  <div style="font-family:monospace">Report: ${d.incidentId} &nbsp;·&nbsp; ${now}</div>
+  <div style="font-family:monospace">Report: ${esc(d.incidentId)} &nbsp;·&nbsp; ${esc(now)}</div>
 </div>
 </div></body></html>`;
 }

@@ -1,3 +1,5 @@
+import { computeBarFillPct } from '../utils/barFill'
+
 const RAW_SEVERITY = {
   BRUTE_FORCE:       'HIGH',
   LOW_REPUTATION_IP: 'HIGH',
@@ -5,15 +7,17 @@ const RAW_SEVERITY = {
   ODD_ACCESS_TIME:   'MEDIUM',
 }
 
-// Labels name the component each bar actually carries, and the weight each one
-// contributes to the final score (see risk_engine.W_*).
+// Labels name the component each bar actually carries, and `max` is that
+// component's own ceiling — weight(0-1) * 100 (see risk_engine.W_*) — since
+// each component contributes a different maximum number of points to the
+// final score. Bar fill = contribution / max, NOT contribution / 100.
 const BAR_LABELS = [
-  { key: 'ml_contribution',       label: 'ML Anomaly (20%)',    color: '#B026FF' },
-  { key: 'log_contribution',      label: 'Log Signals (20%)',   color: '#FF003C' },
-  { key: 'count_contribution',    label: 'Request Count (20%)', color: '#FFEA00' },
-  { key: 'temporal_contribution', label: 'Temporal Rate (15%)', color: '#00F0FF' },
-  { key: 'spike_contribution',    label: 'Spike Deviation (15%)', color: '#FF6B00' },
-  { key: 'trend_contribution',    label: 'Behavioural Trend (10%)', color: '#39FF14' },
+  { key: 'ml_contribution',       label: 'ML Anomaly (20%)',    color: '#B026FF', max: 20 },
+  { key: 'log_contribution',      label: 'Log Signals (20%)',   color: '#FF003C', max: 20 },
+  { key: 'count_contribution',    label: 'Request Count (20%)', color: '#FFEA00', max: 20 },
+  { key: 'temporal_contribution', label: 'Temporal Rate (15%)', color: '#00F0FF', max: 15 },
+  { key: 'spike_contribution',    label: 'Spike Deviation (15%)', color: '#FF6B00', max: 15 },
+  { key: 'trend_contribution',    label: 'Behavioural Trend (10%)', color: '#39FF14', max: 10 },
 ]
 
 export default function AlertFeed({ flags = [], rawFlags = [], breakdown = {}, timeline = [] }) {
@@ -113,14 +117,14 @@ export default function AlertFeed({ flags = [], rawFlags = [], breakdown = {}, t
              <p className="text-[#94A3B8] text-[10px] uppercase tracking-widest font-bold font-['Rajdhani']">Vector Contribution</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-            {BAR_LABELS.map(({ key, label, color }) => {
+            {BAR_LABELS.map(({ key, label, color, max }) => {
               const val = breakdown[key] ?? 0
-              const pct = Math.min((val / 40) * 100, 100)
+              const pct = computeBarFillPct(val, max)
               return (
                 <div key={key}>
                   <div className="flex justify-between text-[10px] mono-text mb-1.5">
                     <span className="text-[#94A3B8]">{label}</span>
-                    <span style={{ color }}>{val.toFixed(1)}%</span>
+                    <span style={{ color }}>{val.toFixed(1)} / {max} pts</span>
                   </div>
                   <div className="progress-track bg-[#1E2D4A]/30 h-1">
                     <div 

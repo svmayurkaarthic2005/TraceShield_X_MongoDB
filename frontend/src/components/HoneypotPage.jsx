@@ -196,15 +196,15 @@ export default function HoneypotPage({ liveEvents = [] }) {
                       ? 'border-purple-500/60 bg-purple-900/20'
                       : 'border-purple-700/30 bg-purple-900/10 hover:border-purple-500/40'}`}
                 >
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                      <span className="font-bold text-purple-300 text-sm">{ip}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-900 border border-purple-700 text-purple-400 uppercase">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse flex-shrink-0" />
+                      <span className="font-bold text-purple-300 text-sm truncate max-w-[160px]" title={ip}>{ip}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-900 border border-purple-700 text-purple-400 uppercase truncate max-w-[140px]" title={h.honeypot_id}>
                         {h.honeypot_id}
                       </span>
                     </div>
-                    <span className="text-[10px] text-purple-400 font-bold">
+                    <span className="text-[10px] text-purple-400 font-bold flex-shrink-0 whitespace-nowrap">
                       {h.interaction_count} interaction{h.interaction_count !== 1 ? 's' : ''}
                     </span>
                   </div>
@@ -353,14 +353,14 @@ export default function HoneypotPage({ liveEvents = [] }) {
               return (
                 <div key={i} className="rounded-lg border px-3 py-2 mono-text text-xs"
                   style={{ borderColor: color+'30', backgroundColor: color+'08' }}>
-                  <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
                       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                      <span className="font-bold text-[9px] px-1.5 py-0.5 rounded border"
+                      <span className="font-bold text-[9px] px-1.5 py-0.5 rounded border flex-shrink-0"
                         style={{ color, borderColor: color+'44', backgroundColor: color+'10' }}>{row.type}</span>
-                      <span className="font-bold" style={{ color }}>{row.actor}</span>
+                      <span className="font-bold truncate max-w-[180px]" style={{ color }} title={row.actor}>{row.actor}</span>
                     </div>
-                    <span className="text-[#94A3B8] text-[10px]">{row.timestamp}</span>
+                    <span className="text-[#94A3B8] text-[10px] flex-shrink-0 whitespace-nowrap">{row.timestamp}</span>
                   </div>
                   <code className="text-[9px] text-[#94A3B8] break-all leading-relaxed">{row.raw}</code>
                 </div>
@@ -395,24 +395,24 @@ export default function HoneypotPage({ liveEvents = [] }) {
                 return (
                   <div key={i} className="rounded-lg border px-3 py-2.5 mono-text text-xs"
                     style={{ borderColor: color + '30', backgroundColor: color + '08' }}>
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
                         <span className="w-2 h-2 rounded-full animate-pulse flex-shrink-0" style={{ backgroundColor: color }} />
-                        <span className="font-bold" style={{ color }}>{ev.status}</span>
-                        <span className="text-[#94A3B8]">{ev.ip}</span>
-                        <span className="text-[#1E2D4A]">→</span>
-                        <span className="text-[#E2E8F0]">{ev.device}</span>
+                        <span className="font-bold flex-shrink-0" style={{ color }}>{ev.status}</span>
+                        <span className="text-[#94A3B8] flex-shrink-0">{ev.ip}</span>
+                        <span className="text-[#1E2D4A] flex-shrink-0">→</span>
+                        <span className="text-[#E2E8F0] truncate max-w-[160px]" title={ev.device}>{ev.device}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
                         {inHoneypot && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-950 text-purple-400 border border-purple-800 uppercase">HONEYPOT</span>}
                         {isBlocked  && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 uppercase">BLOCKED</span>}
-                        <span className="text-[10px] text-[#94A3B8]">{new Date(ev.timestamp).toLocaleTimeString()}</span>
+                        <span className="text-[10px] text-[#94A3B8] whitespace-nowrap">{new Date(ev.timestamp).toLocaleTimeString()}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 mt-1 text-[10px] text-[#94A3B8]">
                       <span>score <span className="font-bold" style={{ color }}>{ev.risk_score?.toFixed(1)}</span></span>
                       <span>ml <span className="text-[#00F0FF]">{ev.ml_score?.toFixed(1)}</span></span>
-                      {ev.reason && ev.reason !== 'N/A' && <span className="truncate max-w-[200px]">{ev.reason}</span>}
+                      {ev.reason && ev.reason !== 'N/A' && <span className="truncate max-w-[200px]" title={ev.reason}>{ev.reason}</span>}
                     </div>
                   </div>
                 )

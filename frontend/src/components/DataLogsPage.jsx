@@ -319,7 +319,7 @@ function LogUploadPanel({ persistedResults, onDatasetUploaded }) {
                   </div>
 
                   {/* Reason / signals */}
-                  <div className="col-span-2 text-[#94A3B8] truncate">{r.reason || '—'}</div>
+                  <div className="col-span-2 text-[#94A3B8] truncate" title={r.reason || ''}>{r.reason || '—'}</div>
                 </div>
               )
             })}
@@ -723,22 +723,22 @@ export default function DataLogsPage({ liveEvents = [], datasetResults = null, o
               const m = STATUS_META[ev.status] || STATUS_META.NORMAL
               return (
                 <div key={i} className={`rounded-lg border px-3 py-2 text-xs mono-text ${m.bg} ${m.border}`}>
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${m.dot}`} />
-                      <span className={`font-bold ${m.color}`}>{ev.status}</span>
-                      <span className="text-[#94A3B8]">{ev.ip}</span>
-                      <span className="text-[#1E2D4A]">→</span>
-                      <span className="text-[#E2E8F0]">{ev.device}</span>
+                      <span className={`font-bold flex-shrink-0 ${m.color}`}>{ev.status}</span>
+                      <span className="text-[#94A3B8] flex-shrink-0">{ev.ip}</span>
+                      <span className="text-[#1E2D4A] flex-shrink-0">→</span>
+                      <span className="text-[#E2E8F0] truncate max-w-[160px]" title={ev.device}>{ev.device}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-[10px] text-[#94A3B8]">
+                    <div className="flex items-center gap-3 text-[10px] text-[#94A3B8] flex-shrink-0 whitespace-nowrap">
                       <span>score <span className="text-white font-bold">{ev.risk_score?.toFixed(1)}</span></span>
                       <span>ml <span className="text-[#00F0FF]">{ev.ml_score?.toFixed(1)}</span></span>
                       <span>{new Date(ev.timestamp).toLocaleTimeString()}</span>
                     </div>
                   </div>
                   {ev.reason && ev.reason !== 'N/A' && (
-                    <div className="text-[10px] text-[#94A3B8] mt-1 truncate">{ev.reason}</div>
+                    <div className="text-[10px] text-[#94A3B8] mt-1 truncate" title={ev.reason}>{ev.reason}</div>
                   )}
                 </div>
               )
@@ -889,7 +889,7 @@ export default function DataLogsPage({ liveEvents = [], datasetResults = null, o
                       <span className="text-[9px] text-[#94A3B8] mono-text truncate">{log.tsStr}</span>
                       <span className={`text-[9px] font-bold mono-text px-1.5 py-0.5 rounded border w-fit h-fit ${meta.bg} ${meta.border}`}
                         style={{ color: meta.color }}>{log.level}</span>
-                      <span className="text-[10px] text-[#E2E8F0] mono-text truncate">{log.msg}</span>
+                      <span className="text-[10px] text-[#E2E8F0] mono-text truncate" title={log.msg}>{log.msg}</span>
                       <span className="text-[9px] text-[#94A3B8] mono-text">{log.pid}</span>
                     </div>
                   );

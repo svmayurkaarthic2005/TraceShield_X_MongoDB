@@ -106,23 +106,23 @@ export default function ThreatStatePanel() {
               <div className="space-y-1.5">
                 {blocked.map(([ip, data]) => (
                   <div key={ip} className="rounded-lg border border-[#FF003C]/30 bg-[#FF003C]/5 px-3 py-2 mono-text text-[11px]">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#FF003C] animate-pulse" />
-                        <span className="font-bold text-[#FF003C]">{ip}</span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#FF003C] animate-pulse flex-shrink-0" />
+                        <span className="font-bold text-[#FF003C] truncate max-w-[180px]" title={ip}>{ip}</span>
                         <Badge label="BLOCKED" color="red" />
                         <button onClick={() => unblockIp(ip)} disabled={loading}
                           title={`Unblock ${ip}`}
-                          className="text-[9px] text-[#94A3B8] hover:text-[#39FF14] mono-text
+                          className="text-[9px] text-[#94A3B8] hover:text-[#39FF14] mono-text flex-shrink-0
                                      uppercase tracking-wider transition-colors disabled:opacity-30">
                           unblock
                         </button>
                       </div>
-                      <span className="text-[#94A3B8] text-[10px]">
+                      <span className="text-[#94A3B8] text-[10px] flex-shrink-0 whitespace-nowrap">
                         expires {new Date(data.expires_at).toLocaleTimeString()}
                       </span>
                     </div>
-                    <div className="text-[#94A3B8] text-[10px] mt-1 truncate">
+                    <div className="text-[#94A3B8] text-[10px] mt-1 truncate" title={data.reason}>
                       reason: {data.reason}
                     </div>
                   </div>
@@ -143,21 +143,21 @@ export default function ThreatStatePanel() {
               <div className="space-y-1.5">
                 {honeypot.map(([ip, data]) => (
                   <div key={ip} className="rounded-lg border border-purple-700/30 bg-purple-900/10 px-3 py-2 mono-text text-[11px]">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                        <span className="font-bold text-purple-300">{ip}</span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400 flex-shrink-0" />
+                        <span className="font-bold text-purple-300 truncate max-w-[180px]" title={ip}>{ip}</span>
                         <Badge label="HONEYPOT" color="purple" />
-                        <span className="text-[9px] text-purple-400">{data.honeypot_id}</span>
+                        <span className="text-[9px] text-purple-400 truncate max-w-[120px]" title={data.honeypot_id}>{data.honeypot_id}</span>
                       </div>
-                      <span className="text-[#94A3B8] text-[10px]">
+                      <span className="text-[#94A3B8] text-[10px] flex-shrink-0 whitespace-nowrap">
                         {data.interaction_count} interaction{data.interaction_count !== 1 ? 's' : ''}
                       </span>
                     </div>
                     {data.fake_data_accessed?.length > 0 && (
                       <div className="mt-1.5 space-y-0.5">
                         {data.fake_data_accessed.slice(-2).map((cmd, i) => (
-                          <div key={i} className="text-[9px] text-purple-400/70 font-mono truncate">
+                          <div key={i} className="text-[9px] text-purple-400/70 font-mono truncate" title={cmd}>
                             $ {cmd}
                           </div>
                         ))}
@@ -181,15 +181,15 @@ export default function ThreatStatePanel() {
               <div className="space-y-1.5">
                 {flagged.map(([ip, data]) => (
                   <div key={ip} className="rounded-lg border border-yellow-700/30 bg-yellow-900/10 px-3 py-2 mono-text text-[11px]">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-                        <span className="font-bold text-yellow-300">{ip}</span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 flex-shrink-0" />
+                        <span className="font-bold text-yellow-300 truncate max-w-[180px]" title={ip}>{ip}</span>
                         <Badge label="FLAGGED" color="yellow" />
-                        <span className="text-[9px] text-yellow-400">×{data.flag_count}</span>
+                        <span className="text-[9px] text-yellow-400 flex-shrink-0">×{data.flag_count}</span>
                       </div>
                     </div>
-                    <div className="text-[#94A3B8] text-[10px] mt-1 truncate">
+                    <div className="text-[#94A3B8] text-[10px] mt-1 truncate" title={data.reason}>
                       {data.reason}
                     </div>
                   </div>
