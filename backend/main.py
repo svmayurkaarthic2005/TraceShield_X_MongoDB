@@ -52,3 +52,9 @@ app.include_router(router, prefix="/api")
 @app.get("/")
 def root():
     return {"status": "online", "system": "TraceShield X++"}
+
+
+@app.get("/health")
+def health():
+    """Lightweight uptime-monitor target (e.g. cron-job.org keep-alive pings)."""
+    return {"status": "ok"}
