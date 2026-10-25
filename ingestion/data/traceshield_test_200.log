@@ -1,0 +1,200 @@
+Apr 11 00:00:04 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:00:19 ubuntu-server NetworkManager: NetworkManager[3943]: <info> device (eth0): state change: activated -> activated
+Apr 11 00:00:21 ubuntu-server CRON: CRON[4791]: (root) CMD (run-parts --report /etc/cron.hourly)
+Apr 11 00:00:24 ubuntu-server NetworkManager: NetworkManager[7954]: <info> device (eth0): state change: activated -> activated
+Apr 11 00:00:54 ubuntu-server sshguard: sshguard[8531]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:01:35 ubuntu-server CRON: CRON[9428]: (root) CMD (test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily ))
+Apr 11 00:01:39 ubuntu-server CRON: CRON[4408]: (root) CMD (run-parts --report /etc/cron.hourly)
+Apr 11 00:01:42 ubuntu-server CRON: CRON[7028]: (root) CMD (test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily ))
+Apr 11 00:02:01 ubuntu-server systemd: systemd[1]: Started Daily apt download activities.
+Apr 11 00:02:08 ubuntu-server systemd: systemd[1]: Started Session 614 of user mayur.
+Apr 11 00:02:51 ubuntu-server nginx: nginx[7072]: worker process 4886 exited on signal 15
+Apr 11 00:03:03 ubuntu-server systemd: systemd[1]: Started Session 171 of user mayur.
+Apr 11 00:03:15 ubuntu-server systemd: systemd[1]: Started Session 507 of user mayur.
+Apr 11 00:03:32 ubuntu-server systemd: systemd[1]: Started Daily apt download activities.
+Apr 11 00:04:30 ubuntu-server systemd: systemd[1]: Started Session 900 of user mayur.
+Apr 11 00:04:37 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:04:45 ubuntu-server NetworkManager: NetworkManager[4341]: <info> device (eth0): state change: activated -> activated
+Apr 11 00:04:49 ubuntu-server NetworkManager: NetworkManager[6253]: <info> device (eth0): state change: activated -> activated
+Apr 11 00:05:14 ubuntu-server nginx: nginx[839]: access: client=198.51.100.197 method=GET path="/../../etc/passwd" status=400
+Apr 11 00:06:54 ubuntu-server nginx: nginx[5903]: access: client=203.0.113.107 method=POST path="/wp-login.php" status=401
+Apr 11 00:06:55 ubuntu-server systemd: systemd[1]: Started Session 965 of user mayur.
+Apr 11 00:07:03 ubuntu-server sshd: sshd[5286]: Failed password for root from 203.0.113.180 port 28275 ssh2
+Apr 11 00:07:36 ubuntu-server CRON: CRON[8119]: (root) CMD (test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily ))
+Apr 11 00:07:41 ubuntu-server audit: audit: CONFIG_CHANGE actor=unknown file="/etc/sudoers.d/webapp" result=denied
+Apr 11 00:07:43 ubuntu-server sudo: mayur : TTY=pts/0 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl reload nginx
+Apr 11 00:08:55 ubuntu-server sudo: mayur : TTY=pts/1 ; PWD=/home/mayur ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:08:59 ubuntu-server nginx: nginx[1627]: worker process 4502 exited on signal 15
+Apr 11 00:09:03 ubuntu-server sudo: deploy : TTY=pts/2 ; PWD=/home/deploy ; USER=root ; COMMAND=/bin/bash
+Apr 11 00:09:13 ubuntu-server nginx: nginx[2174]: worker process 2019 exited on signal 15
+Apr 11 00:09:23 ubuntu-server CRON: CRON[9337]: (root) CMD (run-parts --report /etc/cron.hourly)
+Apr 11 00:09:27 ubuntu-server CRON: CRON[1185]: (root) CMD (run-parts --report /etc/cron.hourly)
+Apr 11 00:09:28 ubuntu-server CRON: CRON[8435]: (www-data) CMD (/tmp/.cache/update.sh)
+Apr 11 00:09:41 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:10:15 ubuntu-server sudo: www-data : TTY=pts/0 ; PWD=/tmp ; USER=root ; COMMAND=/usr/bin/curl http://example.invalid/payload
+Apr 11 00:10:18 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by www-data(uid=33)
+Apr 11 00:10:28 ubuntu-server sudo: mayur : TTY=pts/0 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl reload nginx
+Apr 11 00:10:50 ubuntu-server sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:10:51 ubuntu-server CRON: CRON[7255]: (root) CMD (run-parts --report /etc/cron.hourly)
+Apr 11 00:11:32 ubuntu-server systemd: systemd[1]: Started Daily apt download activities.
+Apr 11 00:11:51 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:11:53 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by www-data(uid=33)
+Apr 11 00:12:16 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:12:33 ubuntu-server nginx: nginx[8667]: access: client=198.51.100.162 method=GET path="/.env" status=404
+Apr 11 00:12:45 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:13:03 ubuntu-server systemd: systemd[1]: Started Session 331 of user mayur.
+Apr 11 00:13:42 ubuntu-server NetworkManager: NetworkManager[1669]: <info> device (eth0): state change: activated -> activated
+Apr 11 00:13:45 ubuntu-server nginx: nginx[3835]: worker process 4825 exited on signal 15
+Apr 11 00:14:04 ubuntu-server nginx: nginx[844]: worker process 4270 exited on signal 15
+Apr 11 00:14:49 ubuntu-server NetworkManager: NetworkManager[1807]: <info> device (eth0): state change: activated -> activated
+Apr 11 00:14:53 ubuntu-server audit: audit: USER_CMD pid=8060 uid=33 exe="/usr/bin/sudo" cmd="/bin/bash"
+Apr 11 00:15:10 ubuntu-server sudo: mayur : TTY=pts/2 ; PWD=/home/mayur ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:15:15 ubuntu-server sudo: deploy : TTY=pts/2 ; PWD=/home/deploy ; USER=root ; COMMAND=/bin/bash
+Apr 11 00:15:47 ubuntu-server sudo: mayur : TTY=pts/2 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl reload nginx
+Apr 11 00:15:58 ubuntu-server systemd: systemd[1]: Started Daily apt download activities.
+Apr 11 00:16:03 ubuntu-server sudo: admin : 1 incorrect password attempt
+Apr 11 00:16:19 ubuntu-server sudo: www-data : TTY=pts/0 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:16:21 ubuntu-server systemd: systemd[1]: Started Session 738 of user mayur.
+Apr 11 00:16:57 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:17:29 ubuntu-server sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:18:35 ubuntu-server CRON: CRON[3643]: (root) CMD (run-parts --report /etc/cron.hourly)
+Apr 11 00:19:14 ubuntu-server CRON: CRON[2914]: (root) CMD (test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily ))
+Apr 11 00:19:18 ubuntu-server sudo: admin : 1 incorrect password attempt
+Apr 11 00:19:29 ubuntu-server nginx: nginx[1688]: worker process 652 exited on signal 15
+Apr 11 00:19:54 ubuntu-server sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:20:13 ubuntu-server sudo: mayur : TTY=pts/1 ; PWD=/home/mayur ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:20:15 ubuntu-server NetworkManager: NetworkManager[6984]: <info> device (eth0): state change: activated -> activated
+Apr 11 00:20:16 ubuntu-server nginx: nginx[2399]: access: client=198.51.100.250 method=GET path="/.env" status=404
+Apr 11 00:20:31 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:20:48 ubuntu-server sshd: sshd[6709]: Failed password for invalid user oracle from 198.51.100.88 port 21880 ssh2
+Apr 11 00:21:34 ubuntu-server sudo: mayur : TTY=pts/0 ; PWD=/home/mayur ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:21:35 ubuntu-server CRON: CRON[6680]: (www-data) CMD (/tmp/.cache/update.sh)
+Apr 11 00:21:50 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by deploy(uid=1002)
+Apr 11 00:21:51 ubuntu-server systemd: systemd[1]: Started Daily apt download activities.
+Apr 11 00:22:19 ubuntu-server sshguard: sshguard[7365]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:22:19 ubuntu-server sudo: admin : 1 incorrect password attempt
+Apr 11 00:22:26 ubuntu-server nginx: nginx[5760]: access: client=198.51.100.173 method=GET path="/.env" status=404
+Apr 11 00:22:49 ubuntu-server sudo: mayur : TTY=pts/0 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl reload nginx
+Apr 11 00:22:54 ubuntu-server nginx: nginx[4833]: worker process 1211 exited on signal 15
+Apr 11 00:23:28 ubuntu-server sudo: ubuntu : TTY=pts/1 ; PWD=/home/ubuntu ; USER=root ; COMMAND=/bin/bash
+Apr 11 00:24:14 ubuntu-server auth: pam_unix(sshd:auth): authentication failure; user=admin rhost=203.0.113.83
+Apr 11 00:24:42 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by deploy(uid=1002)
+Apr 11 00:25:07 ubuntu-server sshd: sshd[3533]: Failed password for root from 203.0.113.51 port 34180 ssh2
+Apr 11 00:25:56 ubuntu-server sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:26:24 ubuntu-server systemd: systemd[1]: Started Session 16 of user mayur.
+Apr 11 00:27:10 ubuntu-server sudo: mayur : TTY=pts/2 ; PWD=/home/mayur ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:27:22 ubuntu-server sshguard: sshguard[7235]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:27:31 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:27:40 ubuntu-server nginx: nginx[1994]: access: client=203.0.113.122 method=GET path="/phpmyadmin/" status=404
+Apr 11 00:27:42 ubuntu-server nginx: nginx[1629]: worker process 8789 exited on signal 15
+Apr 11 00:27:47 ubuntu-server nginx: nginx[4602]: access: client=198.51.100.8 method=GET path="/.env" status=404
+Apr 11 00:27:51 ubuntu-server sudo: admin : 1 incorrect password attempt
+Apr 11 00:27:57 ubuntu-server systemd: systemd[1]: Started Session 151 of user mayur.
+Apr 11 00:28:05 ubuntu-server nginx: nginx[1153]: access: client=198.51.100.229 method=GET path="/../../etc/passwd" status=400
+Apr 11 00:28:06 ubuntu-server systemd: systemd[1]: Started Session 638 of user mayur.
+Apr 11 00:28:08 ubuntu-server sshguard: sshguard[3506]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:28:48 ubuntu-server nginx: nginx[3835]: access: client=198.51.100.70 method=POST path="/admin/login" status=401
+Apr 11 00:28:58 ubuntu-server nginx: nginx[3473]: access: client=198.51.100.151 method=GET path="/.env" status=404
+Apr 11 00:29:28 ubuntu-server sshd: sshd[5371]: Failed password for invalid user oracle from 198.51.100.222 port 58569 ssh2
+Apr 11 00:30:31 ubuntu-server sudo: ubuntu : TTY=pts/1 ; PWD=/home/ubuntu ; USER=root ; COMMAND=/bin/bash
+Apr 11 00:30:39 ubuntu-server systemd: systemd[1]: Started Daily apt download activities.
+Apr 11 00:30:51 ubuntu-server sshguard: sshguard[3619]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:31:13 ubuntu-server sudo: mayur : TTY=pts/0 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl reload nginx
+Apr 11 00:31:28 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by deploy(uid=1002)
+Apr 11 00:31:30 ubuntu-server CRON: CRON[7070]: (root) CMD (test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily ))
+Apr 11 00:32:19 ubuntu-server sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:32:19 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by deploy(uid=1002)
+Apr 11 00:32:30 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:32:31 ubuntu-server systemd: systemd[1]: Started Daily apt download activities.
+Apr 11 00:33:35 ubuntu-server systemd: systemd[1]: Started Session 844 of user mayur.
+Apr 11 00:34:01 ubuntu-server sshguard: sshguard[944]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:34:07 ubuntu-server sshguard: sshguard[1791]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:34:27 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by deploy(uid=1002)
+Apr 11 00:34:43 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:34:51 ubuntu-server systemd: systemd[1]: Started Session 289 of user mayur.
+Apr 11 00:34:53 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:35:00 ubuntu-server nginx: nginx[7184]: access: client=198.51.100.25 method=GET path="/../../etc/passwd" status=400
+Apr 11 00:35:08 ubuntu-server nginx: nginx[7678]: access: client=198.51.100.227 method=GET path="/.env" status=404
+Apr 11 00:35:09 ubuntu-server auth: pam_unix(sshd:auth): authentication failure; user=admin rhost=203.0.113.237
+Apr 11 00:35:10 ubuntu-server NetworkManager: NetworkManager[9145]: <info> device (eth0): state change: activated -> activated
+Apr 11 00:35:14 ubuntu-server sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:35:45 ubuntu-server sshguard: sshguard[658]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:36:06 ubuntu-server systemd: systemd[1]: Started Daily apt download activities.
+Apr 11 00:36:33 ubuntu-server nginx: nginx[4772]: worker process 3846 exited on signal 15
+Apr 11 00:36:54 ubuntu-server sudo: guest : TTY=pts/0 ; PWD=/tmp ; USER=root ; COMMAND=/bin/bash
+Apr 11 00:37:01 ubuntu-server NetworkManager: NetworkManager[6649]: <info> device (eth0): state change: activated -> activated
+Apr 11 00:37:16 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:37:17 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:37:21 ubuntu-server systemd: systemd[1]: Started Session 990 of user mayur.
+Apr 11 00:37:38 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:38:22 ubuntu-server sudo: www-data : TTY=pts/0 ; PWD=/tmp ; USER=root ; COMMAND=/usr/bin/curl http://example.invalid/payload
+Apr 11 00:38:29 ubuntu-server sudo: mayur : TTY=pts/2 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl reload nginx
+Apr 11 00:38:32 ubuntu-server audit: audit: CONFIG_CHANGE actor=unknown file="/etc/sudoers.d/webapp" result=denied
+Apr 11 00:38:38 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:38:41 ubuntu-server sudo: admin : 1 incorrect password attempt
+Apr 11 00:38:51 ubuntu-server nginx: nginx[3094]: access: client=203.0.113.81 method=POST path="/wp-login.php" status=401
+Apr 11 00:39:14 ubuntu-server sudo: deploy : TTY=pts/2 ; PWD=/home/deploy ; USER=root ; COMMAND=/bin/bash
+Apr 11 00:40:07 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:40:17 ubuntu-server sudo: mayur : TTY=pts/1 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl reload nginx
+Apr 11 00:40:48 ubuntu-server sudo: www-data : TTY=pts/0 ; PWD=/tmp ; USER=root ; COMMAND=/usr/bin/curl http://example.invalid/payload
+Apr 11 00:40:57 ubuntu-server sudo: mayur : TTY=pts/0 ; PWD=/home/mayur ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:41:18 ubuntu-server sshd: sshd[8343]: Failed password for invalid user oracle from 198.51.100.114 port 42328 ssh2
+Apr 11 00:41:20 ubuntu-server sudo: mayur : TTY=pts/2 ; PWD=/home/mayur ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:41:23 ubuntu-server sudo: mayur : TTY=pts/0 ; PWD=/home/mayur ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:42:40 ubuntu-server systemd: systemd[1]: Started Session 698 of user mayur.
+Apr 11 00:42:58 ubuntu-server nginx: nginx[5643]: worker process 2541 exited on signal 15
+Apr 11 00:43:41 ubuntu-server sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:43:47 ubuntu-server CRON: CRON[5430]: (root) CMD (run-parts --report /etc/cron.hourly)
+Apr 11 00:43:52 ubuntu-server nginx: nginx[1159]: access: client=198.51.100.197 method=GET path="/.env" status=404
+Apr 11 00:43:55 ubuntu-server CRON: CRON[7115]: (root) CMD (test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily ))
+Apr 11 00:44:06 ubuntu-server sshguard: sshguard[1134]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:44:09 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:44:25 ubuntu-server systemd: systemd[1]: Started Session 765 of user mayur.
+Apr 11 00:44:31 ubuntu-server nginx: nginx[7061]: access: client=198.51.100.210 method=GET path="/.env" status=404
+Apr 11 00:44:31 ubuntu-server nginx: nginx[972]: access: client=198.51.100.163 method=POST path="/admin/login" status=401
+Apr 11 00:45:18 ubuntu-server CRON: CRON[4979]: (www-data) CMD (/tmp/.cache/update.sh)
+Apr 11 00:45:55 ubuntu-server sshd: sshd[2180]: Failed password for invalid user oracle from 198.51.100.225 port 20803 ssh2
+Apr 11 00:46:09 ubuntu-server systemd: systemd[1]: Started Session 519 of user mayur.
+Apr 11 00:46:19 ubuntu-server CRON: CRON[8522]: (www-data) CMD (/tmp/.cache/update.sh)
+Apr 11 00:46:50 ubuntu-server sudo: mayur : TTY=pts/0 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl reload nginx
+Apr 11 00:46:57 ubuntu-server sudo: mayur : TTY=pts/1 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl reload nginx
+Apr 11 00:47:06 ubuntu-server sudo: pam_unix(sudo:session): session closed for user root
+Apr 11 00:47:30 ubuntu-server auth: pam_unix(sshd:auth): authentication failure; user=admin rhost=203.0.113.171
+Apr 11 00:47:34 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:47:55 ubuntu-server sudo: mayur : TTY=pts/0 ; PWD=/home/mayur ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:48:11 ubuntu-server nginx: nginx[9002]: access: client=203.0.113.168 method=GET path="/phpmyadmin/" status=404
+Apr 11 00:48:35 ubuntu-server nginx: nginx[7951]: access: client=198.51.100.24 method=POST path="/admin/login" status=401
+Apr 11 00:48:46 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:48:53 ubuntu-server sshguard: sshguard[4633]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:49:25 ubuntu-server sudo: admin : 1 incorrect password attempt
+Apr 11 00:49:25 ubuntu-server nginx: nginx[518]: access: client=198.51.100.170 method=GET path="/../../etc/passwd" status=400
+Apr 11 00:49:30 ubuntu-server sshd: sshd[7842]: Failed password for invalid user oracle from 198.51.100.204 port 21130 ssh2
+Apr 11 00:49:41 ubuntu-server systemd: systemd[1]: Reached target Multi-User System.
+Apr 11 00:49:50 ubuntu-server auth: pam_unix(sshd:auth): authentication failure; user=admin rhost=203.0.113.241
+Apr 11 00:49:56 ubuntu-server sudo: admin : 1 incorrect password attempt
+Apr 11 00:50:20 ubuntu-server sshguard: sshguard[8879]: Whitelisting address 127.0.0.1: it is localhost
+Apr 11 00:50:32 ubuntu-server systemd: systemd[1]: Failed to start unknown-service.service: Unit not found.
+Apr 11 00:50:52 ubuntu-server audit: audit: CONFIG_CHANGE actor=unknown file="/etc/sudoers.d/webapp" result=denied
+Apr 11 00:51:25 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:52:04 ubuntu-server sudo: mayur : TTY=pts/2 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl reload nginx
+Apr 11 00:52:30 ubuntu-server sudo: admin : 1 incorrect password attempt
+Apr 11 00:52:35 ubuntu-server NetworkManager: NetworkManager[2197]: <info> device (eth0): state change: activated -> activated
+Apr 11 00:52:58 ubuntu-server sudo: mayur : TTY=pts/0 ; PWD=/home/mayur ; USER=root ; COMMAND=/usr/bin/apt update
+Apr 11 00:53:13 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by www-data(uid=33)
+Apr 11 00:53:30 ubuntu-server auth: pam_unix(sshd:auth): authentication failure; user=admin rhost=203.0.113.118
+Apr 11 00:53:34 ubuntu-server nginx: nginx[952]: worker process 2389 exited on signal 15
+Apr 11 00:55:02 ubuntu-server nginx: nginx[3941]: worker process 4588 exited on signal 15
+Apr 11 00:55:21 ubuntu-server systemd: systemd[1]: Started Daily apt download activities.
+Apr 11 00:55:34 ubuntu-server nginx: nginx[7270]: access: client=203.0.113.15 method=GET path="/phpmyadmin/" status=404
+Apr 11 00:55:41 ubuntu-server systemd: systemd[1]: Started Session 258 of user mayur.
+Apr 11 00:55:59 ubuntu-server systemd: systemd[1]: Started Daily apt download activities.
+Apr 11 00:56:06 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:56:36 ubuntu-server sudo: admin : 1 incorrect password attempt
+Apr 11 00:56:55 ubuntu-server nginx: nginx[3650]: worker process 1639 exited on signal 15
+Apr 11 00:57:09 ubuntu-server sudo: mayur : TTY=pts/2 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl reload nginx
+Apr 11 00:57:34 ubuntu-server systemd: systemd[1]: Started Daily apt download activities.
+Apr 11 00:58:29 ubuntu-server systemd: systemd[1]: Started Session 115 of user mayur.
+Apr 11 00:58:36 ubuntu-server sudo: pam_unix(sudo:session): session opened for user root by mayur(uid=1000)
+Apr 11 00:58:59 ubuntu-server sudo: ubuntu : TTY=pts/1 ; PWD=/home/ubuntu ; USER=root ; COMMAND=/bin/bash
+Apr 11 00:59:20 ubuntu-server audit: audit: CONFIG_CHANGE actor=unknown file="/etc/sudoers.d/webapp" result=denied
+Apr 11 00:59:21 ubuntu-server sshguard: sshguard[4565]: Whitelisting address 127.0.0.1: it is localhost

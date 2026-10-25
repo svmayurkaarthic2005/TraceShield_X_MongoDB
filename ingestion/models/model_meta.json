@@ -1,0 +1,1 @@
+{"feature_cols": ["request_count", "requests_per_second", "spike_score", "trend_score", "failed_logins", "sudo_attempts", "suspicious_commands", "sensitive_file_access"], "dataset_version": "v2-4category-stratified", "training_run_id": "9a28a3b9b9184a3aa4f12cdbc27c6358", "model_n_features_in": 8, "scaler_n_features_in": 8, "model_contamination": 0.2, "model_n_estimators": 300}
