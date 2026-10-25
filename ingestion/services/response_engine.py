@@ -1,11 +1,22 @@
 """
 response_engine.py — Tiered automated response engine for TraceShield.
 
-Risk tiers and actions:
-    NORMAL       (0-30)  → no action
-    SUSPICIOUS   (30-70) → flag and monitor
-    HIGH_RISK    (70-90) → redirect to honeypot
-    EXTREME_RISK (>90)   → block IP immediately
+Risk classification itself belongs entirely to risk_engine._classify() — this
+module never computes or reinterprets a score against a threshold. It only
+dispatches on the `status` string that risk_engine has already decided,
+mapping each one to an action:
+
+    NORMAL       → no new response action
+    SUSPICIOUS   → flag the IP
+    HIGH_RISK    → redirect to the honeypot
+    EXTREME_RISK → block the IP and redirect to the honeypot
+
+For reference, the score ranges risk_engine._classify() currently maps to
+each status are:
+    NORMAL:       0  <= score < 20
+    SUSPICIOUS:   20 <= score < 35
+    HIGH_RISK:    35 <= score < 60
+    EXTREME_RISK: 60 <= score <= 100
 
 Cooldown:
     Blocked IPs are automatically unblocked after BLOCK_COOLDOWN_SECONDS.
@@ -24,8 +35,6 @@ from ingestion.db.neo4j_conn import get_driver
 logger = logging.getLogger(__name__)
 
 BLOCK_COOLDOWN_SECONDS = 300
-EXTREME_RISK_THRESHOLD = 60.0
-HIGH_RISK_THRESHOLD    = 40.0
 
 
 # ── In-memory state ───────────────────────────────────────────────────────────
@@ -280,12 +289,15 @@ def _store_honeypot_interaction(ip: str, hid: str, fake: str) -> None:
 def execute_response(ip: str, risk_score: float,
                      status: str, components: dict) -> dict:
     """
-    Execute tiered automated response — strictly follows status.
+    Execute tiered automated response — strictly follows the `status` string
+    the caller supplies. This function never computes or reinterprets a risk
+    score itself; classifying a score into a status is risk_engine._classify()'s
+    responsibility alone (see the module docstring for its current ranges).
 
-    NORMAL       → no action
-    SUSPICIOUS   → flag
-    HIGH_RISK    → honeypot only  (score 70–90)
-    EXTREME_RISK → block + honeypot (score >= 90)
+    NORMAL       → no new response action
+    SUSPICIOUS   → flag the IP
+    HIGH_RISK    → redirect to the honeypot
+    EXTREME_RISK → block the IP and redirect to the honeypot
     """
     reason = _build_reason(components)
     actions_taken = []
